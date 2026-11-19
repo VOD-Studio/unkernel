@@ -310,7 +310,7 @@ pub fn mulDiv32(f3: u32, a64: u64, b64: u64) ?u64 {
 // ---- A extension ---------------------------------------------------------------
 
 fn amoOp(comptime T: type, f5: u32, old: T, src: T) T {
-    const S = std.meta.Int(.signed, @bitSizeOf(T));
+    const S = @Int(.signed, @bitSizeOf(T));
     return switch (f5) {
         0x01 => src,
         0x00 => old +% src,
@@ -1434,7 +1434,7 @@ pub fn Interp(comptime M: type) type {
         /// unnoticed, as in QEMU's emulation), and all of them are
         /// seq_cst, which covers the aq and rl bits.
         noinline fn amoShared(r: *Regs, h: *Hart, m: *M, comptime T: type, inst: u32, f5: u32, rd: u32, rs2: u32, addr: u64) Error!bool {
-            const S = std.meta.Int(.signed, @bitSizeOf(T));
+            const S = @Int(.signed, @bitSizeOf(T));
             const src: T = @truncate(r.x[rs2]);
             const old: T = switch (f5) {
                 0x02 => blk: { // LR

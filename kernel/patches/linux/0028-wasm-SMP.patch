@@ -1,4 +1,4 @@
-From 762815cff3a88ea826300ee19562821aa853c225 Mon Sep 17 00:00:00 2001
+From 0b87d2fdd7b271dc5f2576eac049195aec6103cc Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:07:10 +0000
 Subject: [PATCH] wasm: SMP
@@ -65,7 +65,7 @@ kw_emu.h follows kwemu's ABI 7 (several harts on one memory).
  arch/wasm/Kconfig                    |  25 +-
  arch/wasm/Makefile                   |   5 +
  arch/wasm/configs/kw_smp.config      |   4 +
- arch/wasm/include/asm/entry-common.h |  27 +++
+ arch/wasm/include/asm/entry-common.h |  32 +++
  arch/wasm/include/asm/futex.h        |  26 +-
  arch/wasm/include/asm/hwcap.h        |   2 +
  arch/wasm/include/asm/irq.h          |  22 ++
@@ -98,7 +98,7 @@ kw_emu.h follows kwemu's ABI 7 (several harts on one memory).
  arch/wasm/kernel/wasi.c              |  41 +++-
  arch/wasm/mm/fault.c                 |  60 +++--
  arch/wasm/mm/tlb.c                   | 236 ++++++++++++++++++-
- 36 files changed, 1490 insertions(+), 72 deletions(-)
+ 36 files changed, 1495 insertions(+), 72 deletions(-)
  create mode 100644 arch/wasm/configs/kw_smp.config
  create mode 100644 arch/wasm/include/asm/kwcpu.h
  create mode 100644 arch/wasm/include/asm/smp.h
@@ -186,10 +186,10 @@ index 00000000000..69e9db0c132
 +CONFIG_SMP=y
 +CONFIG_NR_CPUS=8
 diff --git a/arch/wasm/include/asm/entry-common.h b/arch/wasm/include/asm/entry-common.h
-index 185b2ff8246..ea8e4a240f7 100644
+index 185b2ff8246..62bcda7eaf7 100644
 --- a/arch/wasm/include/asm/entry-common.h
 +++ b/arch/wasm/include/asm/entry-common.h
-@@ -5,4 +5,31 @@
+@@ -5,4 +5,36 @@
  
  #include <asm/stacktrace.h>
  
@@ -201,7 +201,12 @@ index 185b2ff8246..ea8e4a240f7 100644
 + */
 +void kw_exit_to_user_schedule(void);
 +void kw_exit_to_user_move(void);
-+#define arch_exit_to_user_mode_schedule kw_exit_to_user_schedule
++
++static __always_inline void arch_exit_to_user_mode_schedule(void)
++{
++	kw_exit_to_user_schedule();
++}
++#define arch_exit_to_user_mode_schedule arch_exit_to_user_mode_schedule
 +
 +/*
 + * An affinity change that excludes the CPU (arch_stay_move()) or a better

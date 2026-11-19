@@ -79,7 +79,7 @@ fetch_verified() {
 
 need_zig() {
 	if [ -z "$zig" ] || [ ! -x "$zig" ]; then
-		echo "zig not found (need Zig 0.16; put it on PATH or set ZIG=/path/to/zig)" >&2
+		echo "zig not found (need Zig 0.17; put it on PATH or set ZIG=/path/to/zig)" >&2
 		exit 1
 	fi
 }

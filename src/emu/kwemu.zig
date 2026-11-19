@@ -719,7 +719,7 @@ comptime {
     std.debug.assert(@intFromEnum(core.Access.exec) == c.KW_ACCESS_EXEC);
     // Optional extensions: core.Ext matches the KW_ISA_* bits one to one.
     const exts = .{ "zba", "zbb", "zbc", "zbs", "zbkb", "zbkc", "zbkx", "zknd", "zkne", "zicond", "zcb", "zimop", "zcmop", "zicbom", "zicboz", "zawrs", "zfa", "zfhmin", "zihpm" };
-    std.debug.assert(exts.len == @typeInfo(core.Ext).@"enum".fields.len);
+    std.debug.assert(exts.len == @typeInfo(core.Ext).@"enum".field_names.len);
     for (exts, .{
         c.KW_ISA_ZBA,   c.KW_ISA_ZBB,    c.KW_ISA_ZBC,    c.KW_ISA_ZBS,   c.KW_ISA_ZBKB, c.KW_ISA_ZBKC,   c.KW_ISA_ZBKX,
         c.KW_ISA_ZKND,  c.KW_ISA_ZKNE,   c.KW_ISA_ZICOND, c.KW_ISA_ZCB,   c.KW_ISA_ZIMOP, c.KW_ISA_ZCMOP, c.KW_ISA_ZICBOM,

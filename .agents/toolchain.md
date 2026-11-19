@@ -33,9 +33,9 @@
 `PATH`, and needs `--table64-lowering`. If none is found and the download
 fails, `lower` fails and removes a stale `vmlinux32.wasm`.
 
-## Zig 0.16
+## Zig 0.17
 
-The API differs from 0.13-0.15. Examples of all of these are in
+The API differs from 0.13-0.16. Examples of all of these are in
 `src/emu/harness_native.zig` and `build.zig`:
 
 - `pub fn main(init: std.process.Init)` provides `init.io`, `init.gpa` and
@@ -45,8 +45,17 @@ The API differs from 0.13-0.15. Examples of all of these are in
   `std.Io.Clock`.
 - `std.ArrayList(T)` is unmanaged: initialise it with `.empty` and pass the
   allocator to each call.
+- `std.lang.Optimize` replaces `std.builtin.OptimizeMode` (`.debug`, `.safe`,
+  `.fast`, `.small`), `@Int(...)` replaces `std.meta.Int`, and enum reflection
+  uses `.field_names` / `.field_values`.
 - build.zig uses `root_module = b.createModule(...)`,
-  `b.addLibrary(.{ .linkage })` and `b.addTranslateC`.
+  `b.addLibrary(.{ .linkage })`, `b.addTranslateC`,
+  `LazyPath` `.relative = .{ .base = .install_prefix }`, and
+  `Run.addPassthruArgs()`.
+- The wasm64 freestanding unit test runner (`src/test_runner_wasm.zig`) uses
+  `std.heap.DebugAllocator` instead of `std.testing.allocator_instance`
+  (`SafeAllocator` calls `std.Thread.getCpuCount()`, which is unsupported on
+  `freestanding`).
 - kwemu is built for wasm64 with cpu `mvp`, so the object needs only
   memory64: no atomics, bulk memory or sign-ext.
 - The guest programs kwtest and kwbench are built with `zig cc`

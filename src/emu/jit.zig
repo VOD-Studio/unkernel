@@ -1906,7 +1906,7 @@ fn emitOp(e: *Emit, o: Op, k: usize, pc: u64, b: *const Block, self_loop: bool) 
 // interpreter (core.aes, which computes MixColumns arithmetically).
 
 const AesK = enum(u3) { es, esm, ds, dsm, im };
-const n_aes_k = @typeInfo(AesK).@"enum".fields.len;
+const n_aes_k = @typeInfo(AesK).@"enum".field_names.len;
 
 fn aesKind(h: exec.H) AesK {
     return switch (h) {
@@ -2063,7 +2063,7 @@ fn aesKs1i(e: *Emit, o: Op) void {
 // `bk_inline_max` of them gets them inline, more call one helper per kind.
 
 const BkK = enum(u3) { clmul, clmulh, clmulr, xperm4, xperm8 };
-const n_bk_k = @typeInfo(BkK).@"enum".fields.len;
+const n_bk_k = @typeInfo(BkK).@"enum".field_names.len;
 
 /// Blocks with at most this many clmul/clmulh/clmulr/xperm4/xperm8 ops get
 /// them inline; more call one helper function per kind, shared by the

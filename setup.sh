@@ -44,9 +44,9 @@ check() {
 	local v t avail
 	echo "Checking prerequisites:"
 
-	if tool "${ZIG:-zig}" "Zig 0.16 from https://ziglang.org/download/ (or set ZIG=)"; then
+	if tool "${ZIG:-zig}" "Zig 0.17 from https://ziglang.org/download/ (or set ZIG=)"; then
 		v="$("$bin" version)"
-		case "$v" in 0.16.*) note zig "$v"; zig="$bin" ;; *) fail zig "need 0.16.x, have $v" ;; esac
+		case "$v" in 0.17.*) note zig "$v"; zig="$bin" ;; *) fail zig "need 0.17.x, have $v" ;; esac
 	fi
 
 	if tool node "Node.js >= 24 from https://nodejs.org/"; then

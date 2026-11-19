@@ -18,7 +18,7 @@ fn guestExts(name: []const u8) std.Target.Cpu.Feature.Set {
 }
 
 pub fn build(b: *std.Build) void {
-    const optimize = b.option(std.builtin.OptimizeMode, "optimize", "Optimization mode for the native library and harness (default: ReleaseFast)") orelse .ReleaseFast;
+    const optimize = b.option(std.lang.Optimize, "optimize", "Optimization mode for the native library and harness (default: fast)") orelse .fast;
     const native = b.standardTargetOptions(.{});
 
     // ---- guest programs (riscv64, rv64imac, soft-float) -------------------------
@@ -35,7 +35,7 @@ pub fn build(b: *std.Build) void {
             .root_module = b.createModule(.{
                 .root_source_file = b.path(b.fmt("guest/{s}.zig", .{name})),
                 .target = guest_target,
-                .optimize = .ReleaseSmall,
+                .optimize = .small,
                 .imports = &.{.{ .name = "rt", .module = rt }},
             }),
         });
@@ -47,7 +47,7 @@ pub fn build(b: *std.Build) void {
     // include/kw_emu.h; conservative wasm features (mvp + memory64): no
     // threads/atomics/TLS/bulk-memory/sign-ext/nontrapping-fptoint, unless
     // -Dkwemu-atomics (below).
-    const lib_optimize = b.option(std.builtin.OptimizeMode, "lib-optimize", "Optimization mode for libkwemu (default: ReleaseFast)") orelse .ReleaseFast;
+    const lib_optimize = b.option(std.lang.Optimize, "lib-optimize", "Optimization mode for libkwemu (default: fast)") orelse .fast;
     // Tail-call threaded dispatch (one function per op, return_call_indirect
     // chains). Adds the wasm `tail_call` feature to the object, so the
     // kernel's toolchain/runtime must support it. Off by default.
@@ -111,7 +111,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/emu/harness_wasm.zig"),
             .target = wasm64,
             .optimize = lib_optimize,
-            .strip = lib_optimize != .Debug,
+            .strip = lib_optimize != .debug,
             .imports = &.{ .{ .name = "kw_h", .module = kw_h_wasm }, .{ .name = "kwemu_options", .module = kw_opts_mod } },
         }),
     });
@@ -133,7 +133,7 @@ pub fn build(b: *std.Build) void {
             .root_source_file = b.path("src/emu/harness_wasm.zig"),
             .target = wasm64,
             .optimize = lib_optimize,
-            .strip = lib_optimize != .Debug,
+            .strip = lib_optimize != .debug,
             .imports = &.{ .{ .name = "kw_h", .module = kw_h_wasm }, .{ .name = "kwemu_options", .module = kw_opts_jit_mod } },
         }),
     });
@@ -146,7 +146,7 @@ pub fn build(b: *std.Build) void {
     // Hard-float guests: riscv64-linux-musl, default CPU = rv64gc (lp64d).
     for (gc_guests) |name| {
         const gc_target = b.resolveTargetQuery(.{ .cpu_arch = .riscv64, .os_tag = .linux, .abi = .musl, .cpu_features_add = guestExts(name) });
-        const mod = b.createModule(.{ .target = gc_target, .optimize = .ReleaseFast, .link_libc = true });
+        const mod = b.createModule(.{ .target = gc_target, .optimize = .fast, .link_libc = true });
         mod.addCSourceFile(.{ .file = b.path(b.fmt("guest/{s}.c", .{name})), .flags = &.{ "-std=c11", "-Wall", "-frounding-math" } });
         mod.linkSystemLibrary("m", .{});
         const exe = b.addExecutable(.{ .name = name, .root_module = mod, .linkage = .static });
@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/tests.zig"),
             .target = native,
-            .optimize = .Debug,
+            .optimize = .debug,
             .imports = &.{ .{ .name = "kw_h", .module = kw_h_native }, .{ .name = "kwemu_options", .module = kw_opts_mod } },
         }),
     });
@@ -169,7 +169,7 @@ pub fn build(b: *std.Build) void {
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/tests_wasm.zig"),
             .target = wasm64,
-            .optimize = .ReleaseSafe,
+            .optimize = .safe,
             .single_threaded = true,
             .imports = &.{ .{ .name = "kw_h", .module = kw_h_wasm }, .{ .name = "kwemu_options", .module = kw_opts_jit_mod } },
         }),
@@ -186,7 +186,7 @@ pub fn build(b: *std.Build) void {
 
     const lib_e2e = b.addSystemCommand(&.{"node"});
     lib_e2e.addFileArg(b.path("test/kwemu-test.mjs"));
-    lib_e2e.addArg(b.getInstallPath(.prefix, ""));
+    lib_e2e.addDirectoryArg(.{ .relative = .{ .base = .install_prefix } });
     lib_e2e.step.dependOn(b.getInstallStep());
     lib_e2e.has_side_effects = true;
     const test_step = b.step("test", "Run unit tests and kwemu library tests (native + wasm64, with and without the JIT tier)");
@@ -199,10 +199,7 @@ pub fn build(b: *std.Build) void {
     const fuzz_run = b.addSystemCommand(&.{"node"});
     fuzz_run.addFileArg(b.path("test/kwemu-unit-wasm.mjs"));
     fuzz_run.addFileArg(unit_wasm.getEmittedBin());
-    if (b.args) |a| {
-        fuzz_run.addArgs(&.{ "--fuzz", a[0] });
-        if (a.len > 1) fuzz_run.addArgs(&.{ "--seed", a[1] });
-    }
+    fuzz_run.addPassthruArgs();
     fuzz_run.has_side_effects = true;
     b.step("fuzz", "Run the wasm64 unit tests with a long randomized interpreter-vs-JIT run (zig build fuzz -- N [SEED])").dependOn(&fuzz_run.step);
 }
@@ -218,7 +215,7 @@ fn kwOptions(b: *std.Build, tail_call: bool, stats: bool, jit: bool, jit_thresho
     return o.createModule();
 }
 
-fn kwHeader(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Module {
+fn kwHeader(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.lang.Optimize) *std.Build.Module {
     const tc = b.addTranslateC(.{
         .root_source_file = b.path("include/kw_emu.h"),
         .target = target,
@@ -228,14 +225,14 @@ fn kwHeader(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.built
     return tc.createModule();
 }
 
-fn kwemuModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode, kw_h: *std.Build.Module, opts: *std.Build.Module) *std.Build.Module {
+fn kwemuModule(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.lang.Optimize, kw_h: *std.Build.Module, opts: *std.Build.Module) *std.Build.Module {
     return b.createModule(.{
         .root_source_file = b.path("src/libkwemu.zig"),
         .target = target,
         .optimize = optimize,
         .single_threaded = true,
         .stack_protector = false,
-        .strip = optimize != .Debug,
+        .strip = optimize != .debug,
         .imports = &.{ .{ .name = "kw_h", .module = kw_h }, .{ .name = "kwemu_options", .module = opts } },
     });
 }

@@ -41,7 +41,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../.." && pwd)
 out=${1:-$root/vendor/build/dosbox}
 zig=${ZIG:-$(command -v zig || true)}
-[ -n "$zig" ] || { echo "dosbox-build: no zig on PATH (Zig 0.16, see .agents/toolchain.md)" >&2; exit 1; }
+[ -n "$zig" ] || { echo "dosbox-build: no zig on PATH (Zig 0.17, see .agents/toolchain.md)" >&2; exit 1; }
 mkdir -p "$out"
 out=$(cd "$out" && pwd)
 jobs=$(nproc 2>/dev/null || echo 4)

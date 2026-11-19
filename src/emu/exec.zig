@@ -1171,15 +1171,15 @@ fn handler(comptime h: H) Handler {
     }.f;
 }
 
-const table: [@typeInfo(H).@"enum".fields.len]Handler = blk: {
-    var t: [@typeInfo(H).@"enum".fields.len]Handler = undefined;
-    for (@typeInfo(H).@"enum".fields) |fld| t[fld.value] = handler(@enumFromInt(fld.value));
+const table: [@typeInfo(H).@"enum".field_names.len]Handler = blk: {
+    var t: [@typeInfo(H).@"enum".field_names.len]Handler = undefined;
+    for (@typeInfo(H).@"enum".field_values) |v| t[v] = handler(@enumFromInt(v));
     break :blk t;
 };
 
 comptime {
     std.debug.assert(@sizeOf(Op) == 16 and @alignOf(Op) == 8);
     std.debug.assert(builtin.cpu.arch.endian() == .little); // word() field layout
-    std.debug.assert(@typeInfo(H).@"enum".fields.len <= @typeInfo(@FieldType(kwemu.Stats, "op_hist")).array.len);
-    std.debug.assert(@typeInfo(Next).@"enum".fields.len <= 8); // packed into an 8-aligned op address
+    std.debug.assert(@typeInfo(H).@"enum".field_names.len <= @typeInfo(@FieldType(kwemu.Stats, "op_hist")).array.len);
+    std.debug.assert(@typeInfo(Next).@"enum".field_names.len <= 8); // packed into an 8-aligned op address
 }

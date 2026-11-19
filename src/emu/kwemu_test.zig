@@ -8,6 +8,7 @@ const kwemu = @import("kwemu.zig");
 const jit = @import("jit.zig");
 const core = @import("../cpu/core.zig");
 const t = std.testing;
+const alloc = if (@hasDecl(@import("root"), "test_allocator")) @import("root").test_allocator else t.allocator;
 const Cpu = kwemu.Cpu;
 const Regs = kwemu.Regs;
 
@@ -73,9 +74,9 @@ const Machine = struct {
         return initSize(1 << 20);
     }
     fn initSize(size: usize) !Machine {
-        const mem = try t.allocator.alignedAlloc(u8, .fromByteUnits(4096), size);
+        const mem = try alloc.alignedAlloc(u8, .fromByteUnits(4096), size);
         @memset(mem, 0);
-        const cpu_mem = try t.allocator.alignedAlloc(u8, .fromByteUnits(8), kwemu.cpu_size);
+        const cpu_mem = try alloc.alignedAlloc(u8, .fromByteUnits(8), kwemu.cpu_size);
         @memset(cpu_mem, 0xaa); // init must clear it
         const cpu: *Cpu = @ptrCast(cpu_mem.ptr);
         kwemu.cpuInit(cpu);
@@ -87,10 +88,10 @@ const Machine = struct {
     }
     fn deinit(m: *Machine) void {
         m.cpu.resetCache(); // gives JIT slots back to the host
-        t.allocator.free(m.mem);
+        alloc.free(m.mem);
         const p: [*]align(8) u8 = @ptrCast(m.cpu);
         const sl: []align(8) u8 = p[0..kwemu.cpu_size];
-        t.allocator.free(sl);
+        alloc.free(sl);
     }
     fn frame(m: *Machine) u64 {
         const pa = pa_base + m.next;
@@ -2158,8 +2159,8 @@ test "kwemu jit: F/D ops on edge-case operands, all rounding modes (JIT vs inter
     const cap = 64 * 64 * 12;
     var rg = try FpRig.init(cap);
     defer rg.deinit();
-    const want = try t.allocator.alloc([2]u64, cap);
-    defer t.allocator.free(want);
+    const want = try alloc.alloc([2]u64, cap);
+    defer alloc.free(want);
     const ops = fpOps(true);
     var total: usize = 0;
     for (ops.slice()) |o| {
@@ -2211,8 +2212,8 @@ test "kwemu jit: F/D ops on normal operands run compiled (no hand-back at the FP
             n += 1;
         };
         try rg.run(o, n, .off);
-        const want = try t.allocator.alloc([2]u64, n);
-        defer t.allocator.free(want);
+        const want = try alloc.alloc([2]u64, n);
+        defer alloc.free(want);
         for (0..n) |i| want[i] = rg.result(i);
         const hb0 = jitStat(&rg.m, "handbacks");
         try rg.run(o, n, .eager);
@@ -2542,8 +2543,8 @@ test "kwemu jit: F/D randomized differential (interpreter vs JIT; -Dkwemu-fp-fuz
     const chunk = 4096;
     var rg = try FpRig.init(chunk);
     defer rg.deinit();
-    const want = try t.allocator.alloc([2]u64, chunk);
-    defer t.allocator.free(want);
+    const want = try alloc.alloc([2]u64, chunk);
+    defer alloc.free(want);
     var prng = std.Random.DefaultPrng.init(0x6b77_656d_7520_6670);
     const rnd = prng.random();
     const ops = fpOps(false);
@@ -4096,7 +4097,7 @@ const isa_probes = [_]struct { ext: core.Ext, alt: ?core.Ext = null, insn: u32 }
 };
 
 test "kwemu isa: an extension that is not implemented or not enabled raises illegal instruction" {
-    comptime std.debug.assert(isa_probes.len == @typeInfo(core.Ext).@"enum".fields.len);
+    comptime std.debug.assert(isa_probes.len == @typeInfo(core.Ext).@"enum".field_names.len);
     var m = try Machine.init();
     defer m.deinit();
     // kw_cpu_init enables everything implemented; kw_set_isa keeps only that.

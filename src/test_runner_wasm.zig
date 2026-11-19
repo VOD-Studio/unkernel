@@ -64,13 +64,16 @@ fn unlockStderr(_: ?*anyopaque) void {
     stderr_writer.interface.flush() catch {};
 }
 
+pub var test_allocator_instance: std.heap.DebugAllocator(.{}) = .init;
+pub const test_allocator = test_allocator_instance.allocator();
+
 export fn run_tests() u32 {
     var failed: u32 = 0;
     for (builtin.test_functions) |t| {
         // name first: if a test traps, the host shows which one
         write(1, t.name);
         write(1, "\t");
-        std.testing.allocator_instance = .{};
+        test_allocator_instance = .init;
         if (t.func()) |_| {
             write(1, "ok");
         } else |e| {
@@ -80,7 +83,7 @@ export fn run_tests() u32 {
                 write(1, @errorName(e));
             }
         }
-        if (std.testing.allocator_instance.deinit() == .leak) {
+        if (test_allocator_instance.deinit() == .leak) {
             failed += 1;
             write(1, " FAIL (leak)");
         }

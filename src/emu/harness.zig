@@ -581,7 +581,7 @@ pub const Machine = struct {
     fn sysMmap(m: *Machine, addr: u64, len0: u64, prot: u64, flags: u64, fd: u64) u64 {
         const MAP_FIXED = 0x10;
         const MAP_ANONYMOUS = 0x20;
-        if (flags & MAP_ANONYMOUS == 0 or @as(i64, @bitCast(fd)) != -1) return neg(ENOSYS);
+        if (flags & MAP_ANONYMOUS == 0 or @as(i32, @bitCast(@as(u32, @truncate(fd)))) != -1) return neg(ENOSYS);
         if (len0 == 0) return neg(EINVAL);
         const len = pageUp(len0);
         var va: u64 = undefined;

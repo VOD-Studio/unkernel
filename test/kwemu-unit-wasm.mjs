@@ -16,9 +16,11 @@ const dec = new TextDecoder();
 const jit = createJitHost({ eager: true, strict: true });
 const arg = (name) => {
   const i = process.argv.indexOf(name);
-  return i > 0 ? BigInt(process.argv[i + 1]) : 0n;
+  return i > 0 ? BigInt(process.argv[i + 1]) : null;
 };
-const fuzz = [arg("--fuzz"), arg("--seed")];
+const rest = process.argv.slice(3);
+const pos = rest.length && !rest[0].startsWith("-") ? rest : [];
+const fuzz = [arg("--fuzz") ?? (pos[0] ? BigInt(pos[0]) : 0n), arg("--seed") ?? (pos[1] ? BigInt(pos[1]) : 0n)];
 let mem, out = "";
 const { instance } = await WebAssembly.instantiate(await readFile(process.argv[2]), {
   env: {

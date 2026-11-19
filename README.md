@@ -501,7 +501,7 @@ the DOM's `WebAssembly` types, so a Node-only TypeScript project needs `"lib":
 
 ## 🛠️ Building from source
 
-You need Linux (x86-64 or arm64), Zig 0.16, Node 24, clang 21+ with the
+You need Linux (x86-64 or arm64), Zig 0.17, Node 24, clang 21+ with the
 wasm target, and the usual build tools. `./setup.sh --check` lists what's
 missing. The first build takes about 12 minutes, most of it spent on a
 patched `wasm-ld`, and uses 5 GiB of disk.
