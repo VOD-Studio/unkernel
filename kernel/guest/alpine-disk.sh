@@ -7,7 +7,7 @@
 #
 #   DISK_SIZE=512M kernel/guest/alpine-disk.sh   -> vendor/build/disk/alpine.ext4
 #
-# Boot: node js/cli.ts --disk vendor/build/disk/alpine.ext4
+# Boot: bun js/cli.ts --disk vendor/build/disk/alpine.ext4
 #       (cmdline "console=hvc0 root=/dev/wda rw"; /sbin/init is busybox init)
 set -euo pipefail
 

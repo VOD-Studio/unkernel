@@ -3,7 +3,7 @@
 // Unit tests for the SDK's user-mode network stack and its backends (direct
 // sockets, Wisp), driven by synthetic guest frames.
 //
-//   node --test test/net.test.ts
+//   bun test ./test/net.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer, type AddressInfo } from "node:net";

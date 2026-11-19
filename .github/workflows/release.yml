@@ -33,7 +33,7 @@
 #   alpine-opt  the rebuilt busybox, zlib, openssl and apk-tools (installed
 #               files only, ~9 MB; ~4 min to rebuild); key: alpine-opt.sh,
 #               env.sh
-#   zig, pnpm   by their setup actions
+#   zig, bun    by their setup actions
 name: Release
 
 on:
@@ -42,7 +42,7 @@ on:
   workflow_dispatch:
     inputs:
       release:
-        description: Tag this commit v<version>-<YYMMDD>-<commit> and publish a GitHub release (unchecked = smoke run)
+        description: Publish to npm and create a tagged GitHub release (unchecked = smoke run)
         type: boolean
         default: true
 
@@ -139,14 +139,7 @@ jobs:
         with:
           version: 0.17.0
 
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 26
-          package-manager-cache: false
-
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with:
-          cache: true
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 
       - name: Check prerequisites
         run: ./setup.sh --check
@@ -304,69 +297,69 @@ jobs:
           path: vendor/downloads
           key: ${{ steps.downloads.outputs.cache-primary-key }}
 
-      - name: Install npm dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Install JavaScript dependencies
+        run: bun install --frozen-lockfile
 
       - name: kwtest (JIT)
         run: |
-          node js/cli.ts --timeout 600 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+          bun js/cli.ts --timeout 600 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
       - name: kwtest (no JIT)
         run: |
-          node js/cli.ts --timeout 900 --no-jit --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+          bun js/cli.ts --timeout 900 --no-jit --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
 
       - name: kwtest (SMP, 2 CPUs)
         run: |
-          node js/cli.ts --timeout 900 --smp 2 --display --shm --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+          bun js/cli.ts --timeout 900 --smp 2 --display --shm --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
       - name: kwtest (SMP, 2 CPUs, no JIT)
         run: |
-          node js/cli.ts --timeout 900 --no-jit --smp 2 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+          bun js/cli.ts --timeout 900 --no-jit --smp 2 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
 
       - name: Typecheck
-        run: pnpm typecheck
+        run: bun run typecheck
       - name: Kernel patch tests
         env:
           KPATCH_UP: vendor/build/kernel/vmlinux32.wasm
           KPATCH_SMP: vendor/build/kernel-smp/vmlinux32.wasm
-        run: pnpm test:kpatch
+        run: bun run test:kpatch
       - name: SDK unit tests
         run: |
-          pnpm test:tty
-          pnpm test:http
-          pnpm test:9p
+          bun run test:tty
+          bun run test:http
+          bun run test:9p
 
       - name: Build the package
         env:
           VERSION: ${{ needs.guard.outputs.version }}
         run: |
-          npm pkg set version="$VERSION"
-          pnpm build
-      # The api suite (~85 s) runs once, on the built package: the same code
+          bun pm pkg set version="$VERSION"
+          bun run build
+      # The api suite runs on the built package: the same code
       # as the sources, plus the packaging.
       - name: Test the built package
         run: |
-          node dist/cli.mjs --timeout 600 --kernel dist/unkernel-alpine.wasm --initrd vendor/build/initramfs/alpine-test.cpio \
+          bun dist/cli.mjs --timeout 600 --kernel dist/unkernel-alpine.wasm --initrd vendor/build/initramfs/alpine-test.cpio \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
-          UNKERNEL_DIST=1 node --test test/api.test.ts
+          UNKERNEL_DIST=1 bun run test:api
       - name: Test the built package (SMP, 2 CPUs)
         run: |
-          node dist/cli.mjs --timeout 900 --smp 2 --kernel dist/unkernel-alpine.wasm --initrd vendor/build/initramfs/alpine-test.cpio \
+          bun dist/cli.mjs --timeout 900 --smp 2 --kernel dist/unkernel-alpine.wasm --initrd vendor/build/initramfs/alpine-test.cpio \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
-          UNKERNEL_DIST=1 UNKERNEL_TEST_CPUS=2 node --test test/api.test.ts
+          UNKERNEL_DIST=1 UNKERNEL_TEST_CPUS=2 bun run test:api
       - name: Pack
         run: |
           mkdir -p out
           # A fixed name; the version is inside (package.json) and in the tag.
-          mv "out/$(npm pack --pack-destination out | tail -1)" out/unkernel.tgz
+          bun pm pack --filename out/unkernel.tgz
           cp vendor/build/bundle/unkernel-alpine.wasm out/
           ls -l out
 
@@ -422,8 +415,9 @@ jobs:
           VERSION: ${{ needs.guard.outputs.version }}
         run: |
           npm --version
-          if [ "$(npm view "unkernel@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
-            echo "unkernel@$VERSION is on npm already"
+          package_name="$(tar -xOf ./out/unkernel.tgz package/package.json | jq -er '.name')"
+          if [ "$(npm view "$package_name@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "$package_name@$VERSION is on npm already"
             exit 0
           fi
           npm publish ./out/unkernel.tgz --access public --provenance --tag latest

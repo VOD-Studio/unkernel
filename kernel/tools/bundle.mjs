@@ -1,9 +1,9 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Bundle a root file system (and a default command line) into a kernel module.
 //
-//   node kernel/tools/bundle.mjs <vmlinux|vmlinux32.wasm> <initrd.cpio[.gz]> -o <out.wasm>
+//   bun kernel/tools/bundle.mjs <vmlinux|vmlinux32.wasm> <initrd.cpio[.gz]> -o <out.wasm>
 //        [--cmdline "console=hvc0 rdinit=/init"] [--datadisk kwdata.kwsparse.gz] [--no-gzip]
 //        [--smp <SMP vmlinux32.wasm> [--smp-patch <file.kwpatch>] [--smp-optional]]
 //
@@ -27,7 +27,7 @@
 // the kernel needs no rebuild. The host runtime (js/core/kernel.ts, see
 // bundledBoot) uses them when it is given no initrd / command line of its own:
 //
-//   node js/cli.ts vendor/build/bundle/unkernel-alpine.wasm
+//   bun js/cli.ts vendor/build/bundle/unkernel-alpine.wasm
 //
 // The cpio is gzipped (CONFIG_RD_GZIP) unless it already is or --no-gzip is
 // given. Existing unkernel.* sections are replaced, so re-bundling works.

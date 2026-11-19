@@ -4,7 +4,7 @@
 // IndexedDB overlay, memory sizing for the device, and the bundled kernel
 // fetched (and compiled while it downloads) from next to this module.
 //
-//   import { createKernel, wispBackend, DEFAULT_WISP_SERVERS } from "unkernel";
+//   import { createKernel, wispBackend, DEFAULT_WISP_SERVERS } from "@vod-studio/unkernel";
 //   const vm = await createKernel({ net: wispBackend(DEFAULT_WISP_SERVERS),
 //     onProgress: (p) => console.log(p) });
 //   vm.onOutput((b) => term.write(b));

@@ -13,7 +13,7 @@
 //   * compile + instantiate latency per translated block.
 // The translated code is checked against a reference run of the same loop.
 //
-// usage: node test/jit-proto.mjs <zig-out prefix>
+// usage: BUN_JSC_useWasmMemory64=1 bun test/jit-proto.mjs <zig-out prefix>
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 

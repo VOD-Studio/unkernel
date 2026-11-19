@@ -57,7 +57,7 @@ the dev server's own responses) and `__KW_BUILD__`.
   from `virtual:unkernel-smp-kernel`). Only a load with several CPUs
   fetches it (Several CPUs, below). The dev server splits again when the file changes. Building or deploying the
   page needs no kernel toolchain.
-- `pnpm dev` runs the file that is there, without a network check.
+- `bun run dev` runs the file that is there, without a network check.
   `kernel/build.sh bundle` (and so `kernel`, `smp`, `alpine`, `datadisk`,
   `all`) copies its output there, so the dev server runs your latest local
   build, with the SMP bundle once `smp` has built the SMP kernel.
@@ -65,14 +65,14 @@ the dev server's own responses) and `__KW_BUILD__`.
   built page had both assets (UP 11.48 MB, SMP 11.88 MB); with the newest
   release (no patch) it had only the UP asset, with the deployed name.
   Only when there is no file does it download one.
-- A page build (`pnpm build:web`, a deploy, the browser tests' build) always
+- A page build (`bun run build:web`, a deploy, the browser tests' build) always
   takes the `unkernel-alpine.wasm` attached to the newest non-draft release
   of `pithings/unkernel` (`.github/workflows/release.yml`), so a deploy
   never ships a local kernel. It downloads unless the file's sha256 is that
   release's.
 - `web/scripts/kernel.ts` does both, from the `unkernel:kernel` plugin's
-  `config` hook in `vite.config.ts`, so before `pnpm dev` serves or
-  `pnpm build:web` builds anything. The download runs at build time because GitHub
+  `config` hook in `vite.config.ts`, so before `bun run dev` serves or
+  `bun run build:web` builds anything. The download runs at build time because GitHub
   serves release assets without CORS (both the `github.com` redirect and
   `release-assets.githubusercontent.com`), so the browser cannot fetch them,
   and CDNs such as jsDelivr only serve files from the git tree.
@@ -84,7 +84,7 @@ the dev server's own responses) and `__KW_BUILD__`.
   the newest tag from `releases.atom` instead. If GitHub cannot be reached,
   a build keeps the file if it is a release's. Otherwise the build fails.
 - `KW_KERNEL=<path>` uses that bundle in a build too (tag `local`), e.g.
-  `KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm pnpm build:web` to
+  `KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm bun run build:web` to
   run the browser tests on a local kernel. `KW_KERNEL_RELEASE=<tag>` picks a
   release instead of the newest, in dev too.
 - A release (the workflow, run by hand) changes a deployed page only once
@@ -92,7 +92,7 @@ the dev server's own responses) and `__KW_BUILD__`.
 - `web/src/sdk.ts` imports `js/core/index.ts`, `js/web/memory.ts` and
   `js/web/platform.ts`, not `js/web.ts`, whose own bundled kernel would
   become a second 10 MB asset. Its `kernelUrl` becomes a hashed Vite asset,
-  which the Node server sends precompressed (br, zstd, gzip). Compressed
+  which the server sends precompressed (br, zstd, gzip). Compressed
   responses have no decoded length, so there is no download percentage.
 
 ## Rules
@@ -271,7 +271,7 @@ other options.
   boot changes the disk), else keeps it.
 - The boot summary says "on N CPUs, in Web Workers"; diagnostics' config
   line has `cpus=`.
-- Automated headless-Chromium suite: `web/test/smp.mjs` (`pnpm test:web:smp`,
+- Automated headless-Chromium suite: `web/test/smp.mjs` (`bun run test:web:smp`,
   built page with a local SMP bundle via `KW_KERNEL=` or `--dev` against Vite;
   checked 2026-11-19): `up` (only UP bundle fetched, `nproc` = 1, `#opt-cpus-2`
   enabled), `smp2` (only SMP bundle fetched, 2 CPUs in Web Workers, no Suspend,
@@ -431,7 +431,7 @@ has no Options control.
   says the preview needs the page open, not the app. Its link to `/` is
   `rel="noreferrer"`, so `previewEscape()` does not send it back.
   `/vm-sw.js` is `no-cache`, and the worker registers with
-  `updateViaCache: "none"`. In `pnpm dev`, Vite serves `public/` and Nitro
+  `updateViaCache: "none"`. In `bun run dev`, Vite serves `public/` and Nitro
   the handler; both carry COOP/COEP.
 - Limits: same-origin and trusted content only, since the guest's pages can
   script the unkernel page (`parent.KW`). A sandbox without
@@ -524,11 +524,11 @@ Doom build come from the data disk on later tours. `KW.showcase` has
 
 ## Running and deploying
 
-- `pnpm dev`: Vite on port 8080, all interfaces. `pnpm build:web` writes
-  `web/.output/`, and `pnpm start:web` runs it (port 3000 unless `PORT=`).
-  `pnpm typecheck:web` type-checks it.
+- `bun run dev`: Vite on port 8080, all interfaces. `bun run build:web` writes
+  `web/.output/`, and `bun run start:web` runs it (port 3000 unless `PORT=`).
+  `bun run typecheck:web` type-checks it.
 - On Vercel, Nitro detects the platform and writes `web/.vercel/output`.
-  Elsewhere, `NITRO_PRESET=vercel pnpm build:web` produces the same for
+  Elsewhere, `NITRO_PRESET=vercel bun run build:web` produces the same for
   `vercel deploy --prebuilt`.
 - A LAN `http://` page is not a secure context: no clipboard API, no
   `deviceMemory`, no Web Locks, and no cross-origin isolation. It still
@@ -537,11 +537,11 @@ Doom build come from the data disk on later tours. `KW.showcase` has
 ## Browser tests (`web/test/`)
 
 Agents run these only when asked. The page is tested by hand with
-`pnpm dev` on port 8080, so do not start anything on that port.
+`bun run dev` on port 8080, so do not start anything on that port.
 
-`headless.mjs` (`pnpm test:web`: desktop with the JIT compiling and
+`headless.mjs` (`bun run test:web`: desktop with the JIT compiling and
 cross-origin isolation asserted, phone over LAN, nojspi, fetch404, modfail,
-lowmem booting to the shell at 128 MiB), `smp.mjs` (`pnpm test:web:smp`:
+lowmem booting to the shell at 128 MiB), `smp.mjs` (`bun run test:web:smp`:
 several CPUs, UP/SMP bundle split, console ring, per-CPU JIT, scaling,
 terminal window, glimmer, plain-http fallback, 404 fallback, UP session
 resume/discard, hidden tab), `data.mjs` (data disk, overlay root, safe mode,

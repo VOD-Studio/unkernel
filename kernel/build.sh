@@ -29,7 +29,7 @@
 # export) in vendor/build/kwemu-stats, the UP kernel in
 # vendor/build/kernel-stats (the first run is a full kernel build) and the
 # bundle vendor/build/bundle/unkernel-alpine-stats.wasm (no SMP patch). Boot
-# it with `node js/cli.ts --kernel vendor/build/bundle/unkernel-alpine-stats.wasm --stats`.
+# it with `bun js/cli.ts --kernel vendor/build/bundle/unkernel-alpine-stats.wasm --stats`.
 #
 # Kernels are reproducible: two builds of the same tree with the same
 # toolchain are byte for byte the same (so is the bundle's SMP patch). The
@@ -444,7 +444,7 @@ bundle_alpine() {
 		args="$(smp_bundle_args)" || return 1
 		[ -z "$args" ] || mapfile -t smp <<< "$args"
 	fi
-	node "$root/kernel/tools/bundle.mjs" "$kout/vmlinux32.wasm" "$cpio" -o "$out/$name" \
+	bun "$root/kernel/tools/bundle.mjs" "$kout/vmlinux32.wasm" "$cpio" -o "$out/$name" \
 		--cmdline "console=hvc0 rdinit=/init" "${dd[@]}" "${smp[@]}"
 	# The page's dev server runs web/kernel/'s copy (web/scripts/kernel.ts);
 	# a page build replaces it with the newest release's.
@@ -497,7 +497,7 @@ build_datadisk() {
 	if [ -n "$e2fsck" ]; then
 		E2FSPROGS_FAKE_TIME="$DATADISK_EPOCH" "$e2fsck" -fn "$img" >/dev/null 2>&1 || { "$e2fsck" -fn "$img"; rm -f "$img" "$conf"; exit 1; }
 	fi
-	node "$root/kernel/tools/kwsparse.mjs" encode "$img" -o "$out/kwdata.kwsparse.gz"
+	bun "$root/kernel/tools/kwsparse.mjs" encode "$img" -o "$out/kwdata.kwsparse.gz"
 	rm -f "$img" "$conf"
 }
 # After a kernel or Alpine rebuild: keep the bundle (the default of the CLI,

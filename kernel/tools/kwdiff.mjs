@@ -1,11 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Build-time byte diff of two kernel modules (bundle.mjs --smp: the UP
 // bundle's patch to the SMP kernel). The patch converts one module into the other;
 // js/core/kpatch.ts applies it in the loader.
 //
-//   node kernel/tools/kwdiff.mjs <base.wasm> <target.wasm> -o <out.kwpatch> [--remap]
+//   bun kernel/tools/kwdiff.mjs <base.wasm> <target.wasm> -o <out.kwpatch> [--remap]
 //
 // The matching follows bsdiff's idea (Colin Percival, "Naive differences of
 // executable code", 2003): a suffix array of the base, exact matches

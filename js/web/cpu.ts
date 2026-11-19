@@ -11,7 +11,7 @@
 //
 // From source (the page's Vite build, Vite's dev server) the worker is
 // `new Worker(new URL(...), { type: "module" })` on the entry file, which
-// Vite bundles as a worker (nested in the kernel worker's bundle). `pnpm
+// Vite bundles as a worker (nested in the kernel worker's bundle). `bun run
 // build` (build.config.ts, WORKERS) replaces the URL below (the expression
 // must appear exactly once in this file) with inlineCpuUrl(code): a Blob
 // URL, revoked once the worker has started, in the web entry and inside

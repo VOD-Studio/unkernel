@@ -1,12 +1,12 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Headless-Chromium test of the persistent data disk (web/src/data.ts), via
 // the DevTools protocol (no npm dependencies; see lib.mjs).
 //
-//   node web/test/data.mjs [--dev] [--chrome path] [--mb 4] [--verbose]
+//   bun web/test/data.mjs [--dev] [--chrome path] [--mb 4] [--verbose]
 //
-// Runs against the built output (web/.output, `pnpm build:web` first), or
+// Runs against the built output (web/.output, `bun run build:web` first), or
 // with --dev against the Vite dev server. One fresh browser profile, page
 // loads of the default page (the bundle, which carries the data disk
 // template):

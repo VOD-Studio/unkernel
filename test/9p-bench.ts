@@ -5,7 +5,7 @@
 // tmpfs as the baseline. Prints a markdown table row; .agents/js.md has dated
 // results.
 //
-//   node test/9p-bench.ts [--worker] [--no-jit] [--node] [--quick]
+//   bun test/9p-bench.ts [--worker] [--no-jit] [--node] [--quick]
 //
 // --node serves a temp directory through nodeFs() instead of a MemoryFs.
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";

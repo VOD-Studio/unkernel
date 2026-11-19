@@ -1019,7 +1019,7 @@ dependencies are not met silently; both configs pass as of 2026-11-17).
   (the output root, default `vendor/build`: kernels, kwemu-smp and
   kwemu-stats, initramfs, disks, bundle; the toolchain's
   `vendor/build/lld22` and alpine-opt.sh's package cache stay). The CLI,
-  `pnpm build` and the tests read `vendor/build`, so pass them paths.
+  `bun run build` and the tests read `vendor/build`, so pass them paths.
   `LINUX_REPO` names where a fresh tree fetches the base commit from.
 - On a fresh clone `prepare_kernel_tree` applies the whole series (UP and
   SMP patches alike) as `kw-riscv-user`; it warns when the checked-out

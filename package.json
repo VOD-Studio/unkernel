@@ -1,12 +1,12 @@
 {
-  "name": "unkernel",
+  "name": "@vod-studio/unkernel",
   "version": "0.1.0",
-  "description": "Linux on WebAssembly: boot an Alpine riscv64 userland in Node or the browser",
+  "description": "Linux on WebAssembly: boot an Alpine riscv64 userland in Bun or the browser",
   "license": "MIT AND GPL-2.0-only",
   "author": "Pooya Parsa <pooya@pi0.io>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pithings/unkernel.git"
+    "url": "git+https://github.com/VOD-Studio/unkernel.git"
   },
   "type": "module",
   "sideEffects": false,
@@ -42,32 +42,33 @@
     "LICENSE-MIT"
   ],
   "engines": {
-    "node": ">=24"
+    "bun": ">=1.4.5"
   },
   "scripts": {
-    "build": "obuild",
-    "typecheck": "tsc -p .",
-    "test": "pnpm typecheck && pnpm test:block && pnpm test:net && pnpm test:tty && pnpm test:http && pnpm test:9p",
-    "test:block": "node --test test/block.test.ts",
-    "test:net": "node --test test/net.test.ts",
-    "test:tty": "node --test test/tty.test.ts",
-    "test:9p": "node --test test/9p.test.ts",
-    "test:http": "node --test test/http.test.ts",
-    "test:kpatch": "node --test test/kpatch.test.ts",
+    "build": "bun run --bun obuild",
+    "typecheck": "bun run --bun tsc -p .",
+    "test": "bun run typecheck && bun test ./test/block.test.ts ./test/net.test.ts ./test/tty.test.ts ./test/http.test.ts ./test/9p.test.ts",
+    "test:block": "bun test ./test/block.test.ts",
+    "test:net": "bun test ./test/net.test.ts",
+    "test:tty": "bun test ./test/tty.test.ts",
+    "test:9p": "bun test ./test/9p.test.ts",
+    "test:http": "bun test ./test/http.test.ts",
+    "test:kpatch": "bun test --timeout 120000 ./test/kpatch.test.ts",
     "test:wasi": "node test/wasi-node.ts",
-    "test:api": "node --test test/api.test.ts",
-    "unkernel": "node js/cli.ts",
-    "dev": "pnpm -C web dev",
-    "build:web": "pnpm -C web build",
-    "start:web": "pnpm -C web start",
-    "typecheck:web": "pnpm -C web typecheck",
-    "test:web": "node web/test/headless.mjs",
-    "test:web:smp": "node web/test/smp.mjs"
+    "test:api": "bun test --timeout 120000 ./test/api.test.ts",
+    "unkernel": "bun js/cli.ts",
+    "dev": "bun run --cwd web dev",
+    "build:web": "bun run --cwd web build",
+    "start:web": "bun run --cwd web start",
+    "typecheck:web": "bun run --cwd web typecheck",
+    "test:web": "bun web/test/headless.mjs",
+    "test:web:smp": "bun web/test/smp.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
     "obuild": "^0.4.45",
     "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@12.14.0"
+  "packageManager": "bun@1.4.5",
+  "workspaces": ["web"]
 }

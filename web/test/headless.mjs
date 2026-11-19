@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Headless-Chromium tests of the page (web/), via the DevTools protocol
 // (no npm dependencies; see lib.mjs).
 //
-//   node web/test/headless.mjs [--dev] [--chrome /path/to/chrome]
+//   bun web/test/headless.mjs [--dev] [--chrome /path/to/chrome]
 //        [--shots DIR] [--only desktop,mobile,nojspi,fetch404,modfail,lowmem] [--lan-ip A.B.C.D] [--verbose]
 //
-// Runs against the built output (web/.output, `pnpm build:web` first), or
+// Runs against the built output (web/.output, `bun run build:web` first), or
 // with --dev against the Vite dev server.
 //
 // Scenarios:

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // The unkernel page: Vite for the client (index.html, src/: React and
-// Tailwind), Nitro for the build output (.output/ with the Node preset,
-// `node .output/server/index.mjs`; .vercel/output/ on Vercel) and the
+// Tailwind), Nitro for the build output (.output/ with the Bun preset,
+// `bun .output/server/index.mjs`; .vercel/output/ on Vercel) and the
 // response headers. The page is static: the kernel
 // (kernel/unkernel-alpine.wasm, the newest GitHub release's, which
 // scripts/kernel.ts fetches before anything else) is a Vite asset. The page's service worker
@@ -13,7 +13,7 @@
 // GITHUB_TOKEN pick the kernel (scripts/kernel.ts; the dev server runs
 // web/kernel/'s file as it is).
 //
-// Runtime settings (environment variables of the built Node server):
+// Runtime settings (environment variables of the built Bun server):
 //   PORT, HOST (NITRO_PORT, NITRO_HOST)  where it listens (default: port 3000, all interfaces)
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
@@ -112,7 +112,7 @@ export default defineConfig({
 		react(),
 		tailwindcss(),
 		nitro({
-			// The kernel (9 MiB) is sent br/zstd/gzip-encoded by the Node server.
+			// The kernel (9 MiB) is sent br/zstd/gzip-encoded by the server.
 			compressPublicAssets: true,
 			// The guest preview (src/preview.ts): /vm/** reaches the server only when the
 			// service worker (public/vm-sw.js, served at /vm-sw.js) did not answer.

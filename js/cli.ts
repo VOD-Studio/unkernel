@@ -1,7 +1,7 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
-// unkernel CLI: boot the kernel under Node with the console on stdio.
+// unkernel CLI: boot the kernel under Bun with the console on stdio.
 // Usage below (`unkernel --help`); exit codes: 0 power off, 1 halt (or boot
 // failure), 2 restart, 124 --timeout, 253 panic, 254 wasm trap, 255 fatal.
 

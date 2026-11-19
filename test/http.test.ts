@@ -4,7 +4,7 @@
 // fake GuestConnect whose connections are in-memory web streams, with the
 // test playing the guest's server byte by byte.
 //
-//   node --test test/http.test.ts
+//   bun test ./test/http.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
 import { HTTP_MAX_HEADER_BYTES, fetchOver, type ByteDuplex, type GuestConnect } from "../js/core/http.ts";

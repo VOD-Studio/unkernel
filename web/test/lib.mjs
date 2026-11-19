@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Shared parts of the browser tests: the page's server (the built Nitro
 // output by default, the Vite dev server with --dev) and headless Chromium
-// driven over the DevTools protocol. No npm dependencies: Node's built-in
+// driven over the DevTools protocol. No npm dependencies: Bun's built-in
 // WebSocket and fetch, and Playwright's cached Chromium if there is one
 // (--chrome PATH or CHROME= otherwise).
 import { spawn } from "node:child_process";
@@ -34,7 +34,7 @@ export function findChrome() {
 }
 
 /**
- * Start the page's server on `port`: the built output (web/.output, `pnpm
+ * Start the page's server on `port`: the built output (web/.output, `bun run
  * build:web`), or with `dev` the Vite dev server. `env` adds variables.
  * Resolves once it answers; kill() stops it.
  */
@@ -44,10 +44,10 @@ export async function startServer({ port, host, dev = flag("dev"), env = {} }) {
 	const stdio = ["ignore", verbose ? "inherit" : "ignore", "inherit"];
 	const allEnv = { ...process.env, ...env };
 	if (dev) {
-		const vite = path.join(webDir, "node_modules/vite/bin/vite.js");
+		const vite = fileURLToPath(new URL("./bin/vite.js", import.meta.resolve("vite/package.json")));
 		child = spawn(process.execPath, [vite, "--port", String(port), "--strictPort", ...(host ? ["--host", host] : [])], { cwd: webDir, stdio, env: allEnv });
 	} else {
-		if (!existsSync(entry)) throw new Error(`${path.relative(process.cwd(), entry)} is missing: run pnpm build:web first (or pass --dev)`);
+		if (!existsSync(entry)) throw new Error(`${path.relative(process.cwd(), entry)} is missing: run bun run build:web first (or pass --dev)`);
 		child = spawn(process.execPath, [entry], { cwd: webDir, stdio, env: { ...allEnv, PORT: String(port), ...(host ? { NITRO_HOST: host } : {}) } });
 	}
 	const exited = new Promise((r) => child.once("exit", r));

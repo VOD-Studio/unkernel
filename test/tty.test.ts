@@ -5,7 +5,7 @@
 // streams, and a small stand-in for the guest server (kernel/guest/kwtty.c)
 // that decodes the host's frames with its own code.
 //
-//   node --test test/tty.test.ts
+//   bun test ./test/tty.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
 import { TTY_PORT, PtyError, connectGuest, connectOn, encodeTtyOpen, execOn, execSubprocess, spawnOn, spawnPty, spawnSubprocess, type PtyOptions, type Pty, type Subprocess } from "../js/core/tty.ts";

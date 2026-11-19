@@ -11,7 +11,7 @@
 #   DISK_SIZE=2G kernel/guest/ubuntu-disk.sh   -> vendor/build/disk/ubuntu.ext4
 #   (UBUNTU_TARBALL=file overrides the pinned release in tools/env.sh)
 #
-# Boot: node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot
+# Boot: bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot
 #       (cmdline "console=hvc0 root=/dev/wda rw"). Ubuntu Base has no init,
 #       so /sbin/init is /usr/local/sbin/kw-init: it mounts /proc, /sys,
 #       /dev/pts, /dev/shm and /run, then runs a root login shell on the

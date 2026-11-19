@@ -4,7 +4,7 @@
 // networking over host sockets, host directories as guest mounts
 // (nodeFs), and the bundled kernel read from disk.
 //
-//   import { createKernel } from "unkernel";
+//   import { createKernel } from "@vod-studio/unkernel";
 //   const vm = await createKernel();            // bundled Alpine, no network
 //   vm.onOutput((b) => process.stdout.write(b));
 //   vm.write("uname -a; poweroff\n");

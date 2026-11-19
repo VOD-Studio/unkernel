@@ -1,7 +1,7 @@
 # AGENTS.md
 
 unkernel runs Linux 7.3, compiled to a single wasm module (`arch/wasm` with an
-MMU), in Node 24 or a browser with JSPI. User space is unmodified riscv64
+MMU), in Bun 1.4.5+ or a browser with JSPI. User space is unmodified riscv64
 Linux ELF (rv64gc plus Zba, Zbb, Zbs, Zicond, Zkne, Zknd, Zbc, Zbkb, Zbkc,
 Zbkx), run by kwemu: a Zig interpreter with a wasm JIT tier, linked into the
 kernel. README.md is the overview, and kernel/README.md covers the kernel
@@ -33,7 +33,7 @@ and stop exec on the whole host until a reboot. So:
 - Run riscv64 binaries on the host only through an explicit emulator
   (`qemu-riscv64-static ./bin`). Never run the guest's `/etc/kw-binfmt.sh`,
   or any part of it, on the host.
-- Do not start anything on port 8080: that is `pnpm dev`'s port.
+- Do not start anything on port 8080: that is `bun run dev`'s port.
 - Repeat these rules in every subagent brief.
 
 ## Layout
@@ -54,9 +54,9 @@ The parts that `ls` does not make obvious:
   the toolchain and all build outputs. Those branches exist only there, so
   `kernel/patches/` is their only durable record.
 - The page's kernel is the gitignored `web/kernel/unkernel-alpine.wasm`.
-  `kernel/build.sh bundle` copies its output there, and `pnpm dev` runs
+  `kernel/build.sh bundle` copies its output there, and `bun run dev` runs
   that file as it is (its copy in `web/kernel/page/`, without an SMP
-  patch section). A page build (`pnpm build:web`, a deploy) replaces it
+  patch section). A page build (`bun run build:web`, a deploy) replaces it
   with the newest GitHub release's bundle (`web/scripts/kernel.ts`, web.md).
 
 ## Building
@@ -66,8 +66,8 @@ The parts that `ls` does not make obvious:
 zig build test              # emulator tests, native and wasm64, with and without the JIT
 kernel/build.sh kernel      # the UP kernel: kwemu with the JIT, vmlinux, lower, refresh the bundle
 kernel/build.sh smp         # the SMP kernel (kwemu with atomics); the bundle then gets the SMP patch
-pnpm install                # SDK and page dev dependencies
-node js/cli.ts              # boot Alpine from the bundle; --help lists options
+bun install                 # SDK and page dev dependencies
+bun js/cli.ts               # boot Alpine from the bundle; --help lists options
 ```
 
 CLI exit codes: 0 = power off, 1 = halt or boot failure, 2 = restart,
@@ -110,7 +110,7 @@ Details are in the area files.
   toolchain`, and re-export (toolchain.md).
 - **Guest image**: `kernel/build.sh alpine` or `kernel/build.sh disk`.
 - **Page**: a kernel or guest change reaches the deployed page with the
-  next release (`.github/workflows/release.yml`, run by hand). `pnpm dev`
+  next release (`.github/workflows/release.yml`, run by hand). `bun run dev`
   runs it as soon as `kernel/build.sh` has rebuilt the bundle.
 
 ## Tests
@@ -121,19 +121,19 @@ Run the quick check for what you changed. The full matrix in
 | Change | Quick check |
 | --- | --- |
 | Emulator (`src/`, `guest/`, `include/`) | `zig build test` |
-| Kernel, `kw_emu.h`, JIT | `kernel/build.sh kernel`; `node js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"` (`kwtest: 0 failure(s)`, exit 0); for JIT changes, again with `--no-jit` |
-| Guest image, anything user space sees | `pnpm test:api`; optional: `node js/cli.ts --timeout 120 --input '{8}uname -a; apk --version\n{2}poweroff\n'` |
-| Display, input, sound (kwfb, kwinput, kwsnd) | `pnpm test:api`; optional: `node test/glimmer-check.mjs --run` |
-| Block, ext4, data disk | `pnpm test:block` |
-| SDK (`js/`) | `pnpm typecheck`; `pnpm test:api` |
-| Host file systems (9p, `kw9p`) | `pnpm test:9p`; `pnpm test:api` (after a kw9p change, `kernel/build.sh alpine` first) |
-| Inbound to the guest (`vm.connect`, `vm.fetch`, kwtty CONNECT, `--forward`) | `pnpm test:http`; `pnpm test:tty`; `pnpm test:api` (after a kwtty change, `kernel/build.sh alpine` first) |
-| Network | `pnpm test:net` |
+| Kernel, `kw_emu.h`, JIT | `kernel/build.sh kernel`; `bun js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"` (`kwtest: 0 failure(s)`, exit 0); for JIT changes, again with `--no-jit` |
+| Guest image, anything user space sees | `bun run test:api`; optional: `bun js/cli.ts --timeout 120 --input '{8}uname -a; apk --version\n{2}poweroff\n'` |
+| Display, input, sound (kwfb, kwinput, kwsnd) | `bun run test:api`; optional: `bun test/glimmer-check.mjs --run` |
+| Block, ext4, data disk | `bun run test:block` |
+| SDK (`js/`) | `bun run typecheck`; `bun run test:api` |
+| Host file systems (9p, `kw9p`) | `bun run test:9p`; `bun run test:api` (after a kw9p change, `kernel/build.sh alpine` first) |
+| Inbound to the guest (`vm.connect`, `vm.fetch`, kwtty CONNECT, `--forward`) | `bun run test:http`; `bun run test:tty`; `bun run test:api` (after a kwtty change, `kernel/build.sh alpine` first) |
+| Network | `bun run test:net` |
 | SMP (`CONFIG_SMP`, `js/core/cpu.ts`; kernel.md, SMP), or any kernel change that SMP code sees | `kernel/build.sh smp` (after `kernel`, so that the bundle carries the patch); kwtest with `--smp 2` (the SMP kernel from the bundle) and once with `--kernel vendor/build/kernel-smp/vmlinux32.wasm --initrd alpine-test` (one CPU); `zig build test -Dkwemu-atomics=true` after a kwemu change |
-| Bundle and kernel patch (`bundle.mjs`, `kwdiff.mjs`, `kpatch.ts`, `kremap.ts`) | `KPATCH_UP=vendor/build/kernel/vmlinux32.wasm KPATCH_SMP=vendor/build/kernel-smp/vmlinux32.wasm pnpm test:kpatch` |
-| Page (`web/`) | `pnpm typecheck:web`; `pnpm build:web` |
+| Bundle and kernel patch (`bundle.mjs`, `kwdiff.mjs`, `kpatch.ts`, `kremap.ts`) | `KPATCH_UP=vendor/build/kernel/vmlinux32.wasm KPATCH_SMP=vendor/build/kernel-smp/vmlinux32.wasm bun run test:kpatch` |
+| Page (`web/`) | `bun run typecheck:web`; `bun run build:web` |
 
-The optional checks boot the same bundle as `pnpm test:api`, which already
+The optional checks boot the same bundle as `bun run test:api`, which already
 runs shell commands and `glimmer --test` inline and in worker mode. Run them
 when the change touches what only they cover. The Alpine boot adds `apk` and
 the CLI's `--input`. `glimmer-check` compares the whole frame pixel for
@@ -142,7 +142,7 @@ events and the CLI's `--display`, `--sound-wav` and `--worker`. Both are
 still part of the full matrix.
 
 Do not run the browser tests (`web/test/`) unless asked. The page is
-tested by hand with `pnpm dev`.
+tested by hand with `bun run dev`.
 
 To add a test: for the emulator, a guest in `build.zig` plus an entry in
 `test/kwemu-test.mjs`; for the kernel, a `CHECK(...)` in

@@ -6,7 +6,7 @@
 // every compile goes into a free slot, every free into an installed one,
 // no module fails to compile, and nothing is left installed at the end
 // (each test's Machine.deinit resets the block cache).
-// usage: node test/kwemu-unit-wasm.mjs <kwemu-unit-jit.wasm> [--fuzz N] [--seed S]
+// usage: BUN_JSC_useWasmMemory64=1 bun test/kwemu-unit-wasm.mjs <kwemu-unit-jit.wasm> [--fuzz N] [--seed S]
 //   --fuzz N: the randomized interpreter-vs-JIT test ("kwemu jit fuzz") runs
 //   N seeds from S (default 0) instead of its default count (`zig build fuzz -- N [S]`)
 import { readFile } from "node:fs/promises";

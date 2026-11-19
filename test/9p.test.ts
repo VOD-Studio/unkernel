@@ -7,7 +7,7 @@
 // the guest's kernel. The snapshot test runs the server on a real VsockHost
 // with a guest end of the vsock protocol written here (GuestVsock).
 //
-//   node --test test/9p.test.ts
+//   bun test ./test/9p.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
 import { P9FrameAssembler, serve9p } from "../js/core/9p.ts";

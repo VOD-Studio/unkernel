@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Headless-Chromium test of the guest network in the page (Wisp), via the
 // DevTools protocol (no npm dependencies; see lib.mjs). Needs internet access.
 //
-//   node web/test/net.mjs [--dev] [--chrome path] [--only wisp,nonet]
+//   bun web/test/net.mjs [--dev] [--chrome path] [--only wisp,nonet]
 //        [--big URL] [--verbose]
 //
-// Runs against the built output (web/.output, `pnpm build:web` first), or
+// Runs against the built output (web/.output, `bun run build:web` first), or
 // with --dev against the Vite dev server. The page is opened from
 // http://127.0.0.1, an origin the default Wisp server accepts.
 //   wisp      the default Wisp server (wss://wisp.pi0.io:6680/): DHCP, DNS,

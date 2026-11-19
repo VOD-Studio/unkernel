@@ -5,8 +5,8 @@
 // real UP and SMP kernels when given (byte-identical result, remapped and
 // not, and the bundle path of bundle.mjs --smp):
 //
-//   node --test test/kpatch.test.ts
-//   KPATCH_UP=up/vmlinux32.wasm KPATCH_SMP=smp/vmlinux32.wasm node --test test/kpatch.test.ts
+//   bun run test:kpatch
+//   KPATCH_UP=up/vmlinux32.wasm KPATCH_SMP=smp/vmlinux32.wasm bun run test:kpatch
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

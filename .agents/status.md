@@ -453,7 +453,7 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
      mode's kernel worker (CPU 0 must be able to block, so not on a
      page's main thread), and the page has a CPUs option (`?smp=N`, off
      by default) that loads the SMP bundle only then and falls back to
-     one CPU. Covered by `web/test/smp.mjs` (`pnpm test:web:smp`) in
+     one CPU. Covered by `web/test/smp.mjs` (`bun run test:web:smp`) in
      headless Chromium (UP vs SMP bundle fetch, 2 and 4 CPUs, console
      ring order, JIT on every CPU, parallel awk scaling, a terminal
      window, glimmer display/evdev/sound, plain-http non-isolated fallback,

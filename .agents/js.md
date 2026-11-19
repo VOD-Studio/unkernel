@@ -1,4 +1,4 @@
-# The SDK (`js/`, npm `unkernel`)
+# The SDK (`js/`, npm `@vod-studio/unkernel`)
 
 The SDK is the host runtime, shared by the CLI, the page and npm users.
 README.md documents its public API. This file covers the rules and the
@@ -6,12 +6,11 @@ parts that are easy to get wrong.
 
 ## Rules
 
-- Node 24 runs the sources directly (`node js/cli.ts`,
-  `node --test test/*.test.ts`). `pnpm install` is needed only for
-  `pnpm typecheck` (`tsc`, TypeScript 7) and `pnpm build` (obuild).
-- `test/api.test.ts` runs its tests concurrently (one per core, divided by
-  `UNKERNEL_TEST_CPUS` when > 1 so multi-CPU runs do not oversubscribe the host;
-  `UNKERNEL_TEST_CONCURRENCY=1` for one at a time). Boot with
+- Bun 1.4.5 or newer runs the sources directly (`bun js/cli.ts`,
+  `bun run test:api`). `bun install` supplies the SDK and page build dependencies.
+  The `node:` imports and `@vod-studio/unkernel/node` entry also support Node 24+ SDK consumers.
+- Bun runs `test/api.test.ts` in order through its `node:test` compatibility layer.
+  Under Node's runner the suite can run concurrently (`UNKERNEL_TEST_CONCURRENCY`). Boot with
   `boot(t, opts)`, so that each test stops only its own kernels. Tests that
   can share one kernel's boot options go in a `describe` with
   `{ concurrency: 1 }` and `sharedKernel()`. A test that changes a global
@@ -22,16 +21,16 @@ parts that are easy to get wrong.
   tabs. Every file starts with the SPDX MIT header and a copyright line.
   There are no runtime dependencies.
 - `js/core/` must stay universal: no `node:` imports and no DOM-only APIs
-  without a guard. Node-only code goes in `js/node/`, browser-only code in
+  without a guard. Bun/Node host code goes in `js/node/`, browser-only code in
   `js/web/`.
 - Nothing may import `js/node.ts` or `js/web.ts` (the CLI uses
   `js/node/platform.ts`). Rolldown moves an entry module that another
   entry imports into a shared chunk, which would break the kernel URL
   below.
 - The page builds from these sources (`web/src/sdk.ts`), so SDK changes
-  reach it without `pnpm build`.
+  reach it without `bun run build`.
 
-## Build (`pnpm build`, `build.config.ts`)
+## Build (`bun run build`, `build.config.ts`)
 
 - Entries `js/node.ts`, `js/web.ts` and `js/cli.ts` become `dist/*.mjs`
   and `.d.mts`, with shared code in `dist/_chunks/`. A copy of
@@ -50,8 +49,8 @@ parts that are easy to get wrong.
   `cpu-entry`. Each CPU worker is inlined into its platform's kernel
   worker bundle too (`nested` in WORKERS), since in worker mode that
   worker starts the CPUs.
-- Test the built package with `node dist/cli.mjs` and
-  `UNKERNEL_DIST=1 node --test test/api.test.ts`, which imports the package
+- Test the built package with `bun dist/cli.mjs` and
+  `UNKERNEL_DIST=1 bun run test:api`, which imports the package
   by its own name.
 
 ## Behaviour to keep
@@ -208,7 +207,7 @@ parts that are easy to get wrong.
 
 ## Worker mode (`createKernel({ worker: true })`)
 
-- Works on Node and in browsers, with disks, network, display, evdev,
+- Works on Bun, Node and in browsers, with disks, network, display, evdev,
   sound, vsock and shm. Owner side `js/core/worker-host.ts`
   (`WorkerKernel`), worker side `js/core/worker-serve.ts` (`serveKernel()`,
   which calls `createKernelOn()`, so defaults, progress and errors match
@@ -318,7 +317,7 @@ parts that are easy to get wrong.
     reports it as delay, so a few ms of error changes no timing.
 - Shared transport (`js/core/worker-shared.ts`, described at its top).
   Where a SharedArrayBuffer can be posted (`sharedMemoryAvailable()`:
-  Node always, browsers when `crossOriginIsolated`) and `shared` is not
+  Bun and Node always, browsers when `crossOriginIsolated`) and `shared` is not
   false, the owner sends a control block in the boot spec and `transport`
   is `"shared"`. Console bytes and evdev calls go through two
   single-producer rings, in order. `SharedServer` is `Kernel.poller`: `wasi.ts` calls
@@ -346,7 +345,7 @@ parts that are easy to get wrong.
   only passes packets (`createKernelOn` with `vsock: { raw }`), in order.
   Credit bounds what is in flight.
 - Packaging: from source, `js/node/worker.ts` starts
-  `new URL("./worker-entry.ts", import.meta.url)`. `pnpm build` bundles
+  `new URL("./worker-entry.ts", import.meta.url)`. `bun run build` bundles
   each entry with rolldown, and the `unkernel:inline-worker` plugin
   replaces that expression (it must occur once) with the code as a string
   (`new Worker(code, { eval: true })`), so the dist has no worker file and
@@ -357,7 +356,7 @@ parts that are easy to get wrong.
   `inlineWorkerUrl(code)`, a Blob URL revoked at the first message. Each
   `WORKERS` entry has its own mark (`/*unkernel-worker:node*/`, `:web*/`,
   `:cpu*/`, `:webcpu*/`).
-  Vite's `?worker&inline` is not usable: plain Node cannot load it.
+  The host entry uses the same built-in worker API on Bun and Node.
 - A worker's WebSocket sends the page's origin, so the Wisp allow list
   works as inline; Node workers send `NODE_WISP_HEADERS`.
 
@@ -502,7 +501,7 @@ parts that are easy to get wrong.
   `compile` stage ("Deriving the SMP kernel from the bundle failed: ..."),
   and the CLI says it cannot load the kernel and exits 1.
   `withoutSmpPatch()` gives the bundle without the section (the page's
-  split, web.md). `pnpm test:kpatch` (`test/kpatch.test.ts`; with
+  split, web.md). `bun run test:kpatch` (`test/kpatch.test.ts`; with
   `KPATCH_UP` and `KPATCH_SMP` set, also on the real kernels and
   bundle.mjs's checks).
 - Browsers (`js/web/cpu.ts`, `web-cpu-entry.ts`; `webPlatform` and the
@@ -637,7 +636,7 @@ parts that are easy to get wrong.
   it exits, the foreground process group gets SIGHUP. A HUP trap in busybox
   ash's own interactive shell does not run once its tty is hung up
   (2026-11-14), so the test sets the trap in a foreground `sh -c`.
-- Test: `pnpm test:tty` (`test/tty.test.ts`, no kernel: the protocol
+- Test: `bun run test:tty` (`test/tty.test.ts`, no kernel: the protocol
   against a fake `Vsock` and a JS stand-in for the server, CONNECT's
   handshake and raw bytes included) and `test/api.test.ts` (inline and
   worker; for CONNECT a busybox `nc -lk -e` server in the guest: echo with
@@ -742,7 +741,7 @@ parts that are easy to get wrong.
   evaluates it for the size. Computed files are read-only (EACCES) and
   have version 0, so the guest reads them uncached: its cached size can be
   up to 1 s old (metatimeout).
-- nodeFs(dir) (Node only): `node:fs/promises`; lstat, never follows
+- nodeFs(dir) (Bun/Node): `node:fs/promises`; lstat, never follows
   symlinks (they are listed and read as links; the guest resolves them in
   its own tree), opens with O_NOFOLLOW and O_NONBLOCK and only regular
   files, one FileHandle per open fid, owners shown as root and chown
@@ -770,7 +769,7 @@ parts that are easy to get wrong.
     allows it only with CACHE_WRITEBACK), so sqlite in WAL mode and LMDB
     do not work on a mount.
   - Files the guest creates get the backend's gid, not the guest's.
-- Benchmark: `node test/9p-bench.ts [--worker] [--no-jit] [--node]
+- Benchmark: `bun test/9p-bench.ts [--worker] [--no-jit] [--node]
   [--quick]` (MemoryFs or nodeFs, tmpfs as baseline, 16 MiB files, a
   workload of `find | wc`, `tar | wc` and `ls -lR` over 30 x 100 small
   files). 2026-11-15, x86 host, Node 24, JIT on, MemoryFs unless noted;
@@ -793,7 +792,7 @@ parts that are easy to get wrong.
 - msize: 128 KiB. 64 KiB to 1 MiB were measured (2026-11-15): no
   consistent gain above 128 KiB inline or in a worker, and each request in
   flight costs the guest two msize buffers.
-- Tests: `pnpm test:9p` (`test/9p.test.ts`, no kernel: the server against
+- Tests: `bun run test:9p` (`test/9p.test.ts`, no kernel: the server against
   a fake Vsock and a 9P2000.L client written in the test) and
   `test/api.test.ts` (inline and worker; skipped when the kernel has no
   kwvsock or no 9p, found by the "9P2000.L" string in the module). Tests
@@ -845,7 +844,7 @@ parts that are easy to get wrong.
 - `fetchOver(connect, input, init)` is an HTTP/1.1 client over any
   `GuestConnect` (`(port, { signal }) => Promise<{ readable, writable }>`);
   `vm.fetch()` is this over `vm.connect()`. It knows nothing about vsock or
-  kwtty, so its tests (`test/http.test.ts`, `pnpm test:http`) need no
+  kwtty, so its tests (`test/http.test.ts`, `bun run test:http`) need no
   kernel.
 - http: only. The connection always goes to the guest's 127.0.0.1 at the
   URL's port (default 80); the hostname goes only into `Host` (`url.host`,
@@ -887,7 +886,7 @@ parts that are easy to get wrong.
   addresses, and TCP (MSS, window scaling, flow control, go-back-N
   retransmit, FIN, RST). Each TCP connection goes to a backend (any object
   with `connect` and `lookup`). `net` may also be a spec (Worker mode).
-- `directBackend()` (Node only, the CLI's default) uses host sockets and
+- `directBackend()` (Bun/Node, the CLI's default) uses host sockets and
   `dns.lookup`. With `hostLoopback`, 10.0.2.2 goes to the host's 127.0.0.1.
 - `wispBackend()` multiplexes connections over one WebSocket to a Wisp v1
   server. `DEFAULT_WISP_SERVERS` is the project's

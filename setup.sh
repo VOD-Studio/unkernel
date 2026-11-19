@@ -6,7 +6,7 @@
 # 32-bit-memory variants, Alpine initramfs and the bundle with the patch
 # to the SMP kernel, Alpine disk image). The browser page (web/)
 # needs its npm dependencies, which this script does not install: run
-# pnpm install, then pnpm dev.
+# bun install, then bun run dev.
 #
 #   ./setup.sh           check, then build (idempotent; re-run to resume)
 #   ./setup.sh --check   only check prerequisites
@@ -49,15 +49,14 @@ check() {
 		case "$v" in 0.17.*) note zig "$v"; zig="$bin" ;; *) fail zig "need 0.17.x, have $v" ;; esac
 	fi
 
-	if tool node "Node.js >= 24 from https://nodejs.org/"; then
+	if tool bun "Bun >= 1.4.5 from https://bun.com/"; then
 		v="$("$bin" --version)"
-		t="${v#v}"
-		if [ "${t%%.*}" -lt 24 ] 2>/dev/null; then
-			fail node "need >= 24, have $v"
-		elif ! "$bin" -e 'process.exit(typeof WebAssembly.Suspending === "function" ? 0 : 1)'; then
-			fail node "$v has no JSPI (WebAssembly.Suspending); need Node >= 24"
+		if [[ ! "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || [ "$(printf '%s\n' 1.4.5 "$v" | sort -V | head -1)" != 1.4.5 ]; then
+			fail bun "need >= 1.4.5, have $v"
+		elif ! "$bin" -e 'import { checkJspi } from "./js/core/support.ts"; const result = await checkJspi(); if (!result.ok) throw new Error(result.why);'; then
+			fail bun "$v cannot suspend and resume WebAssembly with JSPI"
 		else
-			note node "$v (JSPI ok)"
+			note bun "$v (JSPI ok)"
 		fi
 	fi
 
@@ -120,18 +119,12 @@ check() {
 		note disk "WARNING: ${avail} GiB free; a full setup needs about 5 GiB"
 	fi
 
-	# Optional: pnpm for the SDK build and the browser page (web/).
-	if [ -n "$(real_bin pnpm)" ] || [ -n "$(command -v pnpm || true)" ]; then
-		note pnpm "found (pnpm install, then pnpm dev for the browser page)"
-	else
-		note pnpm "not found (optional, for the SDK build and the browser page: https://pnpm.io/installation)"
-	fi
 	# Optional: the browser tests (web/test/*.mjs) need Chromium.
 	if [ -n "${CHROME:-}" ] || [ -n "$(real_bin chromium)" ] ||
 		ls "$HOME"/.cache/ms-playwright/chromium*/chrome*-linux64/chrome* >/dev/null 2>&1; then
 		note chromium "found (browser tests can run)"
 	else
-		note chromium "not found (optional, for browser tests: npx playwright install chromium-headless-shell, or set CHROME=)"
+		note chromium "not found (optional, for browser tests: bunx --bun playwright install chromium-headless-shell, or set CHROME=)"
 	fi
 
 	if [ ${#missing[@]} -gt 0 ]; then
@@ -158,7 +151,7 @@ echo "== kernel/build.sh all"
 
 echo
 echo "Done in $(( (SECONDS - start) / 60 )) min $(( (SECONDS - start) % 60 )) s. Try:"
-echo "  node js/cli.ts                                                       # Alpine shell, Ctrl-] quits"
-echo '  node js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"         # smoke test (kwtest as /init)'
-echo "  node js/cli.ts --disk vendor/build/disk/alpine.ext4                   # Alpine on ext4 (persistent)"
-echo "  pnpm install && pnpm dev                                             # browser: http://localhost:8080/"
+echo "  bun js/cli.ts                                                       # Alpine shell, Ctrl-] quits"
+echo '  bun js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"          # smoke test (kwtest as /init)'
+echo "  bun js/cli.ts --disk vendor/build/disk/alpine.ext4                   # Alpine on ext4 (persistent)"
+echo "  bun install && bun run dev                                         # browser: http://localhost:8080/"

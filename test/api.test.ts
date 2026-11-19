@@ -2,17 +2,17 @@
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // The public createKernel() API on the bundled Alpine kernel, inline and
 // (where marked) also with `worker: true`, whose input and frames go through
-// shared memory on Node unless `shared: false` (marked "worker, messages").
+// shared memory on the host unless `shared: false` (marked "worker, messages").
 //
-//   node --test test/api.test.ts                       # from source (js/node.ts)
-//   UNKERNEL_DIST=1 node --test test/api.test.ts       # the built package ("unkernel" -> dist/)
+//   bun run test:api                       # from source (js/node.ts)
+//   UNKERNEL_DIST=1 bun run test:api       # the built package (@vod-studio/unkernel -> dist/)
 //   UNKERNEL_TEST_WISP=1 ...                           # also the default Wisp server (internet)
 //   UNKERNEL_TEST_KERNEL=path ...                      # another bundle instead of the bundled kernel
 //   UNKERNEL_TEST_CPUS=n ...                           # CPUs for an SMP kernel under test (snapshot tests skipped)
-//   UNKERNEL_TEST_CONCURRENCY=n ...                    # tests at once (default: the number of cores; 1 = in order)
+//   UNKERNEL_TEST_CONCURRENCY=n ...                    # Node runner concurrency (Bun runs the suite in order)
 //
-// The tests run concurrently, each kernel stopped by its own test's cleanup. A
-// suite marked "one kernel" boots once and runs its tests in order on it.
+// Each test stops its own kernels. A suite marked "one kernel" boots once
+// and runs its tests in order on it.
 import test, { after, before, describe } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -24,7 +24,7 @@ import { availableParallelism, tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const spec = process.env.UNKERNEL_DIST ? "unkernel" : "../js/node.ts";
+const spec = process.env.UNKERNEL_DIST ? "@vod-studio/unkernel" : "../js/node.ts";
 const sdk: typeof import("../js/node.ts") = await import(spec);
 const { createKernel, ConsoleRouter, NetStack, directBackend, wispBackend, DEFAULT_WISP_SERVERS, FileDisk, bundledBoot, bundledKernelUrl, createImageFromKwsparse, MemoryFs, nodeFs } = sdk;
 type Instance = Awaited<ReturnType<typeof createKernel>>;

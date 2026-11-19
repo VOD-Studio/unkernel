@@ -776,7 +776,8 @@ that long instead of the ~0.25 ms compiling takes (Rejected designs).
 ## Tests
 
 - `zig build test`: unit tests natively (interpreter) and as wasm64 with an
-  eager JIT host that checks every compile goes into a free slot and
+  eager JIT host under Bun (`BUN_JSC_useWasmMemory64=1`, set by `build.zig`)
+  that checks every compile goes into a free slot and
   nothing stays installed. Then every guest in five modes: native, wasm64,
   wasm64 + JIT (eager and at the default threshold), and the JIT harness
   lowered to memory32. Each JIT mode must retire exactly as many

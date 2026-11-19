@@ -6,7 +6,7 @@
 // mode). The worker gets the compiled module and the shared memory in its
 // first message.
 //
-// From source, Node starts the worker from cpu-entry.ts itself. `pnpm
+// From source, Node starts the worker from cpu-entry.ts itself. `bun run
 // build` (build.config.ts, WORKERS) replaces the URL below (it must appear
 // exactly once in this file) with the bundled entry as a string literal,
 // in the dist entries and inside the inlined kernel worker, which starts

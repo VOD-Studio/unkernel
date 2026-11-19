@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // The overlay root under Node: persistence, the kw.root=initramfs escape
 // hatch, and recovery from broken changes (safe mode, kernel/guest/overlay/).
-// Each boot is a CLI process (node js/cli.ts --data IMG) with the console on
+// Each boot is a CLI process (bun js/cli.ts --data IMG) with the console on
 // a pipe, on a data disk image in a temp dir; killing the process stands in
 // for a reload or a closed tab.
 //
-//   node test/overlay-node.mjs [--verbose] [--keep] [--only NAME[,NAME...]]
+//   bun test/overlay-node.mjs [--verbose] [--keep] [--only NAME[,NAME...]]
 //        [--kernel BUNDLE] [--apk] [--image2 BUNDLE2]
 //
 // Disk hygiene: the images are sparse (created from the template, copied

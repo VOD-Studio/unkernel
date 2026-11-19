@@ -4,7 +4,7 @@
 // the kwsparse format, FileDisk, Kernel.requestSync() and the disk side of
 // machine snapshots (write generations, sealing, snapshotDiskMismatch).
 //
-//   node --test test/block.test.ts
+//   bun test ./test/block.test.ts
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";

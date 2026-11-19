@@ -13,7 +13,7 @@
 //     bulk memory and threads for a -Dkwemu-atomics build);
 //     skipped with a note if vendor/toolchain/binaryen is missing ($WASM_OPT
 //     overrides the path)
-// usage: node test/kwemu-test.mjs <zig-out prefix> [--bench-only]
+// usage: BUN_JSC_useWasmMemory64=1 bun test/kwemu-test.mjs <zig-out prefix> [--bench-only]
 import { readFile, mkdtemp, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";

@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // kwemu benchmarks: runs each guest benchmark on the native and wasm64
 // harness and prints a MIPS table.
-// usage: node test/kwemu-bench.mjs <zig-out prefix> [--reps N] [--median] [--only name,name] [--wasm-only|--native-only]
+// usage: BUN_JSC_useWasmMemory64=1 bun test/kwemu-bench.mjs <zig-out prefix> [--reps N] [--median] [--only name,name] [--wasm-only|--native-only]
 //        [--jit]  (adds a wasm64+jit column: kwemu-harness-jit.wasm with the
 //                  JS host of test/kwemu-jit-host.mjs, default compile threshold,
 //                  plus the compiled-block count and compile time of the last rep)

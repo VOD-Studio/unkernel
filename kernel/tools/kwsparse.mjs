@@ -1,11 +1,11 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Convert between disk images and kwsparse images (format: js/core/kwsparse.ts).
 //
-//   node kernel/tools/kwsparse.mjs encode <disk.img> -o <out.kwsparse[.gz]>
-//   node kernel/tools/kwsparse.mjs decode <in.kwsparse[.gz]> -o <disk.img>   (sparse; must not exist)
-//   node kernel/tools/kwsparse.mjs info <in.kwsparse[.gz]>
+//   bun kernel/tools/kwsparse.mjs encode <disk.img> -o <out.kwsparse[.gz]>
+//   bun kernel/tools/kwsparse.mjs decode <in.kwsparse[.gz]> -o <disk.img>   (sparse; must not exist)
+//   bun kernel/tools/kwsparse.mjs info <in.kwsparse[.gz]>
 //
 // encode stores every 4 KiB block that is not all zeros; an output name ending
 // in .gz is gzipped (zlib level 9, no timestamp), so the same image always

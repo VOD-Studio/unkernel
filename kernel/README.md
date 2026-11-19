@@ -4,9 +4,9 @@ This directory holds the Linux kernel built as a single wasm64 module (Joel
 Severin's `arch/wasm`, reworked). User space is unmodified riscv64 Linux ELF,
 run by the kwemu software CPU (`src/`, contract in `include/kw_emu.h`). The
 CPU walks real Sv39 page tables, so fork, mmap and copy-on-write behave like
-real Linux. A stock Alpine riscv64 minirootfs boots to a shell under Node, in
+real Linux. A stock Alpine riscv64 minirootfs boots to a shell under Bun, in
 Chromium, and in WebKit (Safari 27+, whose JSPI it needs), and Ubuntu Base
-24.04 LTS (glibc, apt) boots from a disk image under Node. The browser page
+24.04 LTS (glibc, apt) boots from a disk image under Bun. The browser page
 and the single-file bundle use a 32-bit-memory build of the same kernel, which
 needs no memory64.
 
@@ -23,30 +23,30 @@ and `kernel/build.sh all`. By hand:
 kernel/build.sh all          # wasm-ld 22, Binaryen, UP and SMP kernels + vmlinux32.wasm, Alpine initramfs + bundle, disk
 kernel/build.sh kernel       # the UP kernel only (the quick loop), then the bundle
 kernel/build.sh smp          # the SMP kernel (vendor/build/kernel-smp), then the bundle with the SMP patch
-node js/cli.ts --smp 2 --append "console=hvc0 rdinit=/usr/bin/kwtest"   # kwtest on the SMP kernel from the bundle, 2 CPUs
-node js/cli.ts                                                  # Alpine (the bundle), interactive; Ctrl-] quits
-node js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"   # kwtest smoke test as /init (the bundle)
-node js/cli.ts --kernel vendor/build/kernel/vmlinux --append "console=hvc0 rdinit=/usr/bin/kwtest"   # same tests on the wasm64 build
-node js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwbench"   # rough guest speed
+bun js/cli.ts --smp 2 --append "console=hvc0 rdinit=/usr/bin/kwtest"   # kwtest on the SMP kernel from the bundle, 2 CPUs
+bun js/cli.ts                                                  # Alpine (the bundle), interactive; Ctrl-] quits
+bun js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwtest"   # kwtest smoke test as /init (the bundle)
+BUN_JSC_useWasmMemory64=1 bun js/cli.ts --kernel vendor/build/kernel/vmlinux --append "console=hvc0 rdinit=/usr/bin/kwtest"   # same tests on the wasm64 build
+bun js/cli.ts --append "console=hvc0 rdinit=/usr/bin/kwbench"   # rough guest speed
 node test/wasi-node.ts       # the kernel with Node's node:wasi for every WASI import
 kernel/build.sh lower        # vmlinux32.wasm (32-bit memory) from the existing vmlinux (fetches wasm-opt if needed)
-kernel/build.sh bundle       # vendor/build/bundle/unkernel-alpine.wasm: vmlinux32.wasm + Alpine in one file (also copied to web/kernel/ for pnpm dev)
-pnpm install && pnpm dev    # the page (web/): Vite dev server on http://localhost:8080/ (prints LAN URLs for phones too)
-pnpm build:web               # web/.output: the built page and its Nitro server (pnpm start:web runs it)
-node web/test/headless.mjs --shots /tmp/shots   # desktop + phone + failure checks in headless Chromium (built output)
-node --test test/net.test.ts  # network stack unit tests (synthetic frames)
-node web/test/net.mjs        # apk/wget through Wisp in headless Chromium
+kernel/build.sh bundle       # vendor/build/bundle/unkernel-alpine.wasm: vmlinux32.wasm + Alpine in one file (also copied to web/kernel/ for bun run dev)
+bun install && bun run dev    # the page (web/): Vite dev server on http://localhost:8080/ (prints LAN URLs for phones too)
+bun run build:web               # web/.output: the built page and its Nitro server (bun run start:web runs it)
+bun web/test/headless.mjs --shots /tmp/shots   # desktop + phone + failure checks in headless Chromium (built output)
+bun test ./test/net.test.ts  # network stack unit tests (synthetic frames)
+bun web/test/net.mjs        # apk/wget through Wisp in headless Chromium
 kernel/build.sh disk                                         # vendor/build/disk/alpine.ext4 (needs e2fsprogs)
-node js/cli.ts --disk vendor/build/disk/alpine.ext4   # Alpine on ext4, root=/dev/wda rw, persistent
+bun js/cli.ts --disk vendor/build/disk/alpine.ext4   # Alpine on ext4, root=/dev/wda rw, persistent
 kernel/build.sh ubuntu                                       # vendor/build/disk/ubuntu.ext4: Ubuntu Base 24.04 (needs e2fsprogs)
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot   # Ubuntu on ext4, a root shell (see Ubuntu)
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot   # Ubuntu on ext4, a root shell (see Ubuntu)
 kernel/build.sh datadisk     # vendor/build/disk/kwdata.kwsparse.gz, the data disk template (needs mke2fs)
-node js/cli.ts --data /tmp/kwdata.img   # Alpine plus the data disk at /data (created from the template if missing)
+bun js/cli.ts --data /tmp/kwdata.img   # Alpine plus the data disk at /data (created from the template if missing)
 kernel/build.sh stats        # vendor/build/bundle/unkernel-alpine-stats.wasm: kwemu with -Dkwemu-stats (own kernel output dir)
-node js/cli.ts --kernel vendor/build/bundle/unkernel-alpine-stats.wasm --stats   # kwemu's exit counters at exit
-node --test test/block.test.ts   # CowDisk/store logic, kwsparse, FileDisk, requestSync (fake store)
-node web/test/data.mjs       # data disk in headless Chromium: persistence, overlay root, safe mode and recovery, second tab, export/reset/import
-node test/overlay-node.mjs   # the overlay root under Node: persistence, kw.root=initramfs, safe mode for broken changes (--apk, --image2 need the network)
+bun js/cli.ts --kernel vendor/build/bundle/unkernel-alpine-stats.wasm --stats   # kwemu's exit counters at exit
+bun test ./test/block.test.ts   # CowDisk/store logic, kwsparse, FileDisk, requestSync (fake store)
+bun web/test/data.mjs       # data disk in headless Chromium: persistence, overlay root, safe mode and recovery, second tab, export/reset/import
+bun test/overlay-node.mjs   # the overlay root under Bun: persistence, kw.root=initramfs, safe mode for broken changes (--apk, --image2 need the network)
 ```
 
 `build.sh` steps, each also available on its own (`toolchain`, `binaryen`,
@@ -143,8 +143,8 @@ and `stats` are separate and not part of `all`):
   in `tools/env.sh`) as `vendor/build/disk/ubuntu.ext4`, built like the
   Alpine disk. See Ubuntu below.
 
-The CLI (`js/cli.ts`, run by Node directly; `node dist/cli.mjs` after `pnpm
-build`, `npx unkernel` once installed) has the page's defaults: Alpine from
+The CLI (`js/cli.ts`, run by Bun directly; `bun dist/cli.mjs` after `bun run
+build`, `unkernel` once installed) has the page's defaults: Alpine from
 the bundle (`js/unkernel-alpine.wasm` is a symlink to
 `vendor/build/bundle/unkernel-alpine.wasm`; `dist/` has a copy), and
 `vendor/build/kernel/vmlinux32.wasm` for anything else. `--help` lists the
@@ -174,7 +174,7 @@ built without touching the main tree or its outputs; the header of
 Downloads are pinned: the kernel base commit and the LLVM tag/commit in
 `build.sh`; Binaryen, Alpine and Ubuntu Base by SHA-256 (`build.sh`,
 `tools/env.sh`); the page's npm dependencies (wterm, React, Tailwind) through
-`pnpm-lock.yaml`. Host tools are taken from real binaries on `PATH`, skipping
+`bun.lock`. Host tools are taken from real binaries on `PATH`, skipping
 wrapper scripts (`tools/env.sh`, `use_real_host_tools`).
 
 ## Networking
@@ -196,13 +196,13 @@ wrapper scripts (`tools/env.sh`, `use_real_host_tools`).
   handshake, MSS and window scaling, flow control both ways, go-back-N
   retransmit after 1 s, FIN half-close and RST. Each connection is bridged
   to a backend:
-  * Node (`js/node/net.ts`, `directBackend()`, the CLI's default): real
+  * Host sockets (`js/node/net.ts`, `directBackend()`, the CLI's default): real
     sockets and `dns.lookup`. With `hostLoopback` (the CLI sets it), TCP to
     10.0.2.2 goes to the host's 127.0.0.1.
   * Browser page (`web/src/net.ts`, outside the SDK): Wisp (below);
     `?net=0` or `?wisp=0` removes the device. (A WebSocket-to-TCP relay
     the page used to offer is in git history.)
-  * Wisp (`js/core/net-wisp.ts`, `wispBackend()`, Wisp v1; Node and
+  * Wisp (`js/core/net-wisp.ts`, `wispBackend()`, Wisp v1 with Bun, Node and
     browsers): the guest's TCP connections
     multiplexed over one WebSocket to a Wisp server (wisp-js, epoxy-server,
     ...). The default list is `DEFAULT_WISP_SERVERS` (the project's server,
@@ -414,7 +414,7 @@ wrapper scripts (`tools/env.sh`, `use_real_host_tools`).
   clean). After an unclean stop the journal is replayed on the next mount
   (there is no e2fsck in the initramfs). A test image:
   `mke2fs -t ext4 -b 4096 -L kwdata -m 0 -J size=8 -E lazy_itable_init=0,lazy_journal_init=0 data.ext4 4G`,
-  then `node js/cli.ts --data data.ext4` (or `--data new.img`, created
+  then `bun js/cli.ts --data data.ext4` (or `--data new.img`, created
   from the template).
 * **Overlay root** (`kernel/guest/overlay/`): with a data disk the whole
   root is writable and persistent through overlayfs
@@ -436,7 +436,7 @@ wrapper scripts (`tools/env.sh`, `use_real_host_tools`).
     the plain image for one boot, with `/data` mounted and the changes
     unmounted in `/data/overlay/upper`, where they can be inspected or
     fixed (changing the upper layer while the overlay is mounted is
-    undefined in overlayfs). It is the only `kw.root=` value. Under Node:
+    undefined in overlayfs). It is the only `kw.root=` value. In the CLI:
     `--append "console=hvc0 rdinit=/init kw.root=initramfs"`; in the page:
     `?root=initramfs`, or the panel's *Safe mode* button.
   * **Boot health and safe mode.** Changes can break the boot (a bad
@@ -657,7 +657,7 @@ default; the page offers all three.
   `--no-sound` turns it off). `glimmer --test` draws a fixed pattern,
   plays a fixed test signal (1 s each of 440 Hz on both channels, 660 Hz
   on the left, 880 Hz on the right) and prints every input event, and
-  `node test/glimmer-check.mjs --run` checks all three from the host
+  `bun test/glimmer-check.mjs --run` checks all three from the host
   (`--no-sound`: without a sound card).
 * **Size**, lowered 32-bit kernel, 2026-11-14: display +37 KiB, input
   +49 KiB, sound +142 KiB (30 KiB of it the OSS emulation), vsock
@@ -694,9 +694,9 @@ setuid/setgid bits (`su`, `passwd`, `mount`, `unix_chkpwd` root:shadow,
 
 ```sh
 kernel/build.sh ubuntu
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot          # root shell; poweroff
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot --append "console=hvc0 root=/dev/wda rw init=/bin/bash"
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --mem 1024          # persistent: apt-get update && apt-get install ...
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot          # root shell; poweroff
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot --append "console=hvc0 root=/dev/wda rw init=/bin/bash"
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --mem 1024          # persistent: apt-get update && apt-get install ...
 ```
 
 Measured on 2026-11-13 (x86-64 host, Node 24, JIT on): `apt-get update`
@@ -717,8 +717,8 @@ Interrupts are polled under Design).
 it from the kw-init shell (persistent disk, network):
 
 ```sh
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --mem 1024 --input '{5}apt-get update && apt-get install -y --no-install-recommends systemd systemd-sysv udev dbus && poweroff\n'
-node js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot --mem 1024   # systemd, root logged in on hvc0
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --mem 1024 --input '{5}apt-get update && apt-get install -y --no-install-recommends systemd systemd-sysv udev dbus && poweroff\n'
+bun js/cli.ts --disk vendor/build/disk/ubuntu.ext4 --snapshot --mem 1024   # systemd, root logged in on hvc0
 ```
 
 `systemd-sysv` replaces `/sbin/init`; `init=/usr/local/sbin/kw-init`
@@ -795,7 +795,7 @@ from source). Everything is self-hosted except the Wisp fallback.
 * **What it downloads.** One file: `web/kernel/unkernel-alpine.wasm`, the
   `bundle` output attached to the newest GitHub release (10.6 MiB, without
   an SMP patch section if the release has one;
-  `web/scripts/kernel.ts` fetches it when the page is built; `pnpm dev`
+  `web/scripts/kernel.ts` fetches it when the page is built; `bun run dev`
   runs the local build's copy), a Vite asset (`/assets/unkernel-alpine-<hash>.wasm` in the
   build; the runtime takes the initramfs and command line from its custom
   sections). The page has no other kernel, root fs or disk.
@@ -955,7 +955,7 @@ from source). Everything is self-hosted except the Wisp fallback.
     masked optional extension raises SIGILL like an unimplemented one.
     Masking one that every kwemu has (Zicntr, Zca, ...) only stops
     advertising it. The boot log shows the result (`kwemu: isa ...`).
-    Under Node: `--append "console=hvc0 rdinit=/init kw.isa=rv64gc"`.
+    In the CLI: `--append "console=hvc0 rdinit=/init kw.isa=rv64gc"`.
   * There is no vDSO. Handlers return through a `[sigpage]` special mapping
     that holds `li a7,139; ecall`.
 * **Console.** `hvc_wasm` on WASI fds 1 (output) and 0 (input, read only
@@ -973,7 +973,7 @@ from source). Everything is self-hosted except the Wisp fallback.
 ### Host imports
 
 The runtime lives in `js/core/kernel.ts` (`Kernel`, with `js/core/wasi.ts`)
-and is shared by Node and the browser (the SDK, see the top-level README).
+and is shared by Bun, Node and the browser (the SDK, see the top-level README).
 Imports marked * are JSPI suspending; they
 suspend only when the host returns a promise.
 

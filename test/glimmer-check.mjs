@@ -1,13 +1,13 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Checks the display, input and sound self-test, `glimmer --test` (the
 // guest program kernel/guest/glimmer.c; its header documents the pattern,
 // the test signal and the output lines).
 //
-//   node test/glimmer-check.mjs FRAME.ppm [--size WxH]
-//   node test/glimmer-check.mjs --wav SOUND.wav
-//   node test/glimmer-check.mjs --run [--kernel BUNDLE] [--initrd FILE] [--smp N] [--no-jit]
+//   bun test/glimmer-check.mjs FRAME.ppm [--size WxH]
+//   bun test/glimmer-check.mjs --wav SOUND.wav
+//   bun test/glimmer-check.mjs --run [--kernel BUNDLE] [--initrd FILE] [--smp N] [--no-jit]
 //        [--boot SECONDS] [--mode WxH] [--no-sound] [--worker[=shared|messages]] [--keep] [--verbose]
 //
 // With a frame (a PPM, as the CLI's {fb=FILE} writes it), it compares every
@@ -21,7 +21,7 @@
 // should carry it and silence on the other, and, when the length is exact,
 // every sample against the formula (within 1 LSB).
 //
-// --run boots the CLI (node js/cli.ts --display --sound-wav FILE) on BUNDLE
+// --run boots the CLI (bun js/cli.ts --display --sound-wav FILE) on BUNDLE
 // (default: the CLI's own), waits --boot seconds for the shell (default 12,
 // 45 with --no-jit), runs `glimmer --test 10` (with GLIMMER_MODE=WxH for
 // --mode), saves a frame, injects keys, mouse motion, buttons and wheel
@@ -329,8 +329,8 @@ if (flag("run")) {
 	if (!problems.length) process.stdout.write(`glimmer-check: ok: ${args[0]} matches the pattern\n`);
 	process.exit(problems.length ? 1 : 0);
 } else {
-	process.stdout.write("usage: node test/glimmer-check.mjs FRAME.ppm [--size WxH]\n" +
-		"       node test/glimmer-check.mjs --wav SOUND.wav\n" +
-		"       node test/glimmer-check.mjs --run [--kernel BUNDLE] [--initrd FILE] [--smp N] [--no-jit] [--boot S] [--mode WxH] [--no-sound] [--worker[=shared|messages]] [--keep] [--verbose]\n");
+	process.stdout.write("usage: bun test/glimmer-check.mjs FRAME.ppm [--size WxH]\n" +
+		"       bun test/glimmer-check.mjs --wav SOUND.wav\n" +
+		"       bun test/glimmer-check.mjs --run [--kernel BUNDLE] [--initrd FILE] [--smp N] [--no-jit] [--boot S] [--mode WxH] [--no-sound] [--worker[=shared|messages]] [--keep] [--verbose]\n");
 	process.exit(2);
 }

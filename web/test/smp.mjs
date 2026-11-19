@@ -1,15 +1,15 @@
-#!/usr/bin/env node
+#!/usr/bin/env bun
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // Headless-Chromium tests of the page's several-CPUs option (?smp=N;
 // web/src/config.ts, boot.ts, js/web/cpu.ts), via the DevTools protocol
 // (no npm dependencies; see lib.mjs).
 //
-//   node web/test/smp.mjs [--dev] [--chrome /path/to/chrome]
+//   bun web/test/smp.mjs [--dev] [--chrome /path/to/chrome]
 //        [--only up,smp2,smp4,lan,fallback,session,hidden] [--lan-ip A.B.C.D] [--verbose]
 //
 // Runs against the built output (web/.output; needs a kernel with an SMP
-// patch, e.g. KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm pnpm
+// patch, e.g. KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm bun run
 // build:web), or with --dev against the Vite dev server (after
 // kernel/build.sh smp).
 //
@@ -91,7 +91,7 @@ const scenarios = {
 			suspend: typeof KW.suspend,
 		})`);
 		if (!info.smpUrl) {
-			throw new Error("this page has no SMP bundle (build with KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm pnpm build:web, or pass --dev after kernel/build.sh smp)");
+			throw new Error("this page has no SMP bundle (build with KW_KERNEL=../vendor/build/bundle/unkernel-alpine.wasm bun run build:web, or pass --dev after kernel/build.sh smp)");
 		}
 		const wasms = wasmUrls(reqs);
 		if (!wasms.some((u) => UP_WASM_RE.test(u)) || wasms.some((u) => SMP_WASM_RE.test(u)))

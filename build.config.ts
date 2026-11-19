@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
-// obuild config for the `unkernel` npm package (pnpm build).
+// obuild config for the `@vod-studio/unkernel` npm package (bun run build).
 //
-//   js/node.ts -> dist/node.mjs   Node entry ("unkernel" under the node condition, "unkernel/node")
-//   js/web.ts  -> dist/web.mjs    web entry ("unkernel" elsewhere, "unkernel/web")
-//   js/cli.ts  -> dist/cli.mjs    `npx unkernel`
+//   js/node.ts -> dist/node.mjs   Node entry (@vod-studio/unkernel/node)
+//   js/web.ts  -> dist/web.mjs    web entry (@vod-studio/unkernel/web)
+//   js/cli.ts  -> dist/cli.mjs    `bunx --package @vod-studio/unkernel unkernel`
 //   vendor/build/bundle/unkernel-alpine.wasm -> dist/unkernel-alpine.wasm
 //                                 (kernel/build.sh bundle; both entries find it
 //                                 with new URL("./unkernel-alpine.wasm", import.meta.url))

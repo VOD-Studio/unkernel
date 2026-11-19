@@ -3,7 +3,7 @@
 // Start the kernel worker (worker-entry.ts) on a worker_threads Worker, for
 // createKernel({ worker: true }) (core/worker-host.ts).
 //
-// From source, Node starts the worker from worker-entry.ts itself. `pnpm
+// From source, Node starts the worker from worker-entry.ts itself. `bun run
 // build` (build.config.ts) bundles worker-entry.ts into one minified ES
 // module and replaces the URL of worker-entry.ts below (the expression
 // must appear exactly once in this file) with that code as a string literal, so the published package has

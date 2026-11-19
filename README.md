@@ -35,7 +35,7 @@ processes, syscalls, page faults, file and network I/O. In unkernel that
 path runs at wasm speed.
 
 - **Boot**: the kernel reaches `/init` about 70 ms after it starts, and the Alpine
-  prompt appears 0.3 s after `node` launches. The page downloads about
+  prompt took 0.3 s to appear in the Node benchmark. The page downloads about
   10 MB, and Alpine boots in 48 MiB of guest memory.
 - **Syscalls at close to native cost**: `getppid` takes about 170 ns (110
   native, 1.7 µs under qemu-system), a 64-byte `read` about 170 ns (160
@@ -94,8 +94,8 @@ overlayfs, behaves as it does on a server, because it runs the same code.
   `/dev/fb0`, evdev and ALSA. Try `glimmer`, a tiny game with sound.
 - **[Embed Linux in your app](#-use-it-from-javascript)** with a
   zero-dependency TypeScript SDK, published as
-  [`unkernel`](https://www.npmjs.com/package/unkernel). The same kernel file
-  runs in Node and in every supported browser, optionally [in a
+  [`@vod-studio/unkernel`](https://www.npmjs.com/package/@vod-studio/unkernel). The same kernel file
+  runs in Bun, Node and every supported browser, optionally [in a
   worker](#run-it-in-a-worker). [Disks](#add-disks) can be local ext4 images,
   http(s) images fetched by range, or a persistent disk in IndexedDB. The SDK
   is MIT-licensed, and there is no closed engine or license key behind it, so
@@ -143,22 +143,24 @@ host the page somewhere else, point `?wisp=` at your own proxy.
 
 ## 💻 Run it from the terminal
 
+Use Bun 1.4.5 or newer.
+
 ```sh
-npx unkernel
+bunx --package @vod-studio/unkernel unkernel
 ```
 
 This boots Alpine from RAM, with networking over your host's sockets. Press
 **Ctrl-]** to quit.
 
 ```sh
-npx unkernel --disk alpine.ext4              # boot from an ext4 image, changes persist
-npx unkernel --data my-data.img              # a persistent /data disk, created on first use
-npx unkernel --display --sound               # a framebuffer and a sound card
-npx unkernel --mem 1024 --no-net             # more memory, no network
-npx unkernel --mount .:/work                 # this directory at /work in the guest (:ro for read-only)
-npx unkernel --forward 8000:80               # host 127.0.0.1:8000 to port 80 in the guest
-npx unkernel --timeout 60 --input '{8}uname -a\n{2}poweroff\n'   # scripted: wait, type, wait, type
-npx unkernel --help                          # everything else
+bunx --package @vod-studio/unkernel unkernel --disk alpine.ext4              # boot from an ext4 image, changes persist
+bunx --package @vod-studio/unkernel unkernel --data my-data.img              # a persistent /data disk, created on first use
+bunx --package @vod-studio/unkernel unkernel --display --sound               # a framebuffer and a sound card
+bunx --package @vod-studio/unkernel unkernel --mem 1024 --no-net             # more memory, no network
+bunx --package @vod-studio/unkernel unkernel --mount .:/work                 # this directory at /work in the guest (:ro for read-only)
+bunx --package @vod-studio/unkernel unkernel --forward 8000:80               # host 127.0.0.1:8000 to port 80 in the guest
+bunx --package @vod-studio/unkernel unkernel --timeout 60 --input '{8}uname -a\n{2}poweroff\n'   # scripted: wait, type, wait, type
+bunx --package @vod-studio/unkernel unkernel --help                          # everything else
 ```
 
 Exit codes: 0 power off, 1 halt or boot failure, 2 restart, 124 timeout, 253
@@ -229,8 +231,8 @@ faster than without it, which is still well behind native.
 
 ### 🚧 Known limits
 
-- One CPU in the released kernel. Several CPUs (SMP) are experimental,
-  not in a release yet, and cannot be suspended.
+- Several CPUs (SMP) are experimental and opt-in. Suspend requires the
+  single-CPU kernel.
 - No IPv6, no UDP beyond DHCP and DNS, no inbound network connections
   ([`vm.connect()`, `vm.fetch()`](#talk-over-vsock) and `--forward` reach
   guest servers over vsock instead).
@@ -241,11 +243,11 @@ faster than without it, which is still well behind native.
 ## 🧩 Use it from JavaScript
 
 ```sh
-npm install unkernel
+bun add @vod-studio/unkernel
 ```
 
 ```js
-import { createKernel } from "unkernel";
+import { createKernel } from "@vod-studio/unkernel";
 
 const vm = await createKernel();                 // bundled Alpine, no network
 vm.onOutput((bytes) => process.stdout.write(bytes));
@@ -254,17 +256,18 @@ vm.write("uname -a; poweroff\n");
 const { code, kind } = await vm.exited;          // 0, "halt"
 ```
 
-The same code runs in the browser. Importing `unkernel` picks the Node or
-browser entry automatically, and `unkernel/node` or `unkernel/web` selects
-one explicitly. The kernel ships in the package and loads from next to the
-entry, streamed and compiled while it downloads.
+The same code runs in the browser. Importing `@vod-studio/unkernel` picks the
+host entry in Bun and Node, and the browser entry elsewhere.
+`@vod-studio/unkernel/node` or `@vod-studio/unkernel/web` selects one explicitly.
+The kernel ships in the package and loads
+from next to the entry, streamed and compiled while it downloads.
 
 ### Add a network
 
 ```js
-import { createKernel, directBackend, wispBackend, DEFAULT_WISP_SERVERS } from "unkernel";
+import { createKernel, directBackend, wispBackend, DEFAULT_WISP_SERVERS } from "@vod-studio/unkernel";
 
-await createKernel({ net: directBackend() });                       // Node: host sockets
+await createKernel({ net: directBackend() });                       // Bun/Node: host sockets
 await createKernel({ net: wispBackend(DEFAULT_WISP_SERVERS) });     // anywhere: a Wisp proxy
 ```
 
@@ -275,7 +278,7 @@ own backend.
 ### Add disks
 
 ```js
-import { createKernel, openDisk } from "unkernel/node";
+import { createKernel, openDisk } from "@vod-studio/unkernel/node";
 
 const vm = await createKernel({
   disks: [await openDisk("alpine.ext4")],        // or an https:// URL
@@ -338,7 +341,7 @@ web streams, byte for byte.
 ### Mount host files
 
 ```js
-import { createKernel, MemoryFs, nodeFs } from "unkernel";
+import { createKernel, MemoryFs, nodeFs } from "@vod-studio/unkernel";
 
 const mem = new MemoryFs();
 mem.onChange((c) => console.log(c.type, c.path));   // what the guest changed
@@ -352,7 +355,7 @@ const vm = await createKernel({
 await vm.exec("cp", ["/etc/os-release", "/mnt/mem/"]);
 console.log(mem.readText("/os-release"));
 
-const work = await vm.mount("/work", nodeFs("."), { readOnly: true });   // Node only
+const work = await vm.mount("/work", nodeFs("."), { readOnly: true });   // Bun/Node
 await work.unmount();
 ```
 
@@ -421,7 +424,7 @@ exists only when the kernel runs inline.
 ### Display, input and sound
 
 ```js
-import { createKernel, domCodeToLinux, pcmToFloat32 } from "unkernel";
+import { createKernel, domCodeToLinux, pcmToFloat32 } from "@vod-studio/unkernel";
 
 const vm = await createKernel({
   display: { width: 800, height: 600 },          // the guest gets /dev/fb0
@@ -455,7 +458,7 @@ const vm = await createKernel({
 
 The kernel runs in a worker thread or Web Worker, with the same API. Disks
 and the network are given as specs, which the worker builds: `{ kind:
-"file", path }` on Node, `{ kind: "http", url }` and `{ kind: "data",
+"file", path }` on Bun and Node, `{ kind: "http", url }` and `{ kind: "data",
 template: "bundled" }` in browsers. Input and frames go through shared
 memory when it is available (`vm.transport` says). This mode is
 experimental.
@@ -470,7 +473,7 @@ thread may not; `webCpuBlocker()` says why it cannot, and
 ### Boot options and helpers
 
 ```js
-import { checkSupport, ConsoleRouter, createKernel } from "unkernel";
+import { checkSupport, ConsoleRouter, createKernel } from "@vod-studio/unkernel";
 
 const support = await checkSupport();            // JSPI and the rest, before you boot
 if (!support.ok) throw new Error(support.problems.join("\n"));
@@ -496,21 +499,21 @@ limits](#-known-limits). There is no guest agent beyond terminal sessions, so
 you drive the guest through a terminal or its console, or over vsock with your
 own program. `stop()` doesn't shut the guest down cleanly, so prefer
 `poweroff`. Only one kernel can run per thread. Types ship as `.d.mts` and use
-the DOM's `WebAssembly` types, so a Node-only TypeScript project needs `"lib":
+the DOM's `WebAssembly` types, so a Bun or Node TypeScript project needs `"lib":
 ["dom"]` or `skipLibCheck`.
 
 ## 🛠️ Building from source
 
-You need Linux (x86-64 or arm64), Zig 0.17, Node 24, clang 21+ with the
+You need Linux (x86-64 or arm64), Zig 0.17, Bun 1.4.5+, clang 21+ with the
 wasm target, and the usual build tools. `./setup.sh --check` lists what's
 missing. The first build takes about 12 minutes, most of it spent on a
 patched `wasm-ld`, and uses 5 GiB of disk.
 
 ```sh
-./setup.sh              # check, then build everything
-node js/cli.ts          # boot your build
-pnpm install && pnpm dev   # the web page at http://localhost:8080
-zig build test          # emulator tests
+./setup.sh                   # check, then build everything
+bun js/cli.ts                # boot your build
+bun install && bun run dev   # the web page at http://localhost:8080
+zig build test               # emulator tests
 ```
 
 [kernel/README.md](kernel/README.md) covers the kernel, its devices and the

@@ -162,7 +162,7 @@ pub fn build(b: *std.Build) void {
             .imports = &.{ .{ .name = "kw_h", .module = kw_h_native }, .{ .name = "kwemu_options", .module = kw_opts_mod } },
         }),
     });
-    // The kwemu unit tests again as wasm64 with the JIT tier, run under Node
+    // The kwemu unit tests again as wasm64 with the JIT tier, run under Bun
     // by test/kwemu-unit-wasm.mjs (a JS host for the JIT imports).
     const unit_wasm = b.addTest(.{
         .name = "kwemu-unit-jit",
@@ -179,12 +179,14 @@ pub fn build(b: *std.Build) void {
     unit_wasm.entry = .disabled;
     unit_wasm.rdynamic = true;
     unit_wasm.export_table = true;
-    const unit_wasm_run = b.addSystemCommand(&.{"node"});
+    const unit_wasm_run = b.addSystemCommand(&.{"bun"});
+    unit_wasm_run.setEnvironmentVariable("BUN_JSC_useWasmMemory64", "1");
     unit_wasm_run.addFileArg(b.path("test/kwemu-unit-wasm.mjs"));
     unit_wasm_run.addFileArg(unit_wasm.getEmittedBin());
     unit_wasm_run.has_side_effects = true;
 
-    const lib_e2e = b.addSystemCommand(&.{"node"});
+    const lib_e2e = b.addSystemCommand(&.{"bun"});
+    lib_e2e.setEnvironmentVariable("BUN_JSC_useWasmMemory64", "1");
     lib_e2e.addFileArg(b.path("test/kwemu-test.mjs"));
     lib_e2e.addDirectoryArg(.{ .relative = .{ .base = .install_prefix } });
     lib_e2e.step.dependOn(b.getInstallStep());
@@ -196,7 +198,8 @@ pub fn build(b: *std.Build) void {
 
     // `zig build fuzz -- N [SEED]`: the wasm64 unit tests with N seeds of the
     // randomized interpreter-vs-JIT test (src/emu/kwemu_test.zig, "kwemu jit fuzz").
-    const fuzz_run = b.addSystemCommand(&.{"node"});
+    const fuzz_run = b.addSystemCommand(&.{"bun"});
+    fuzz_run.setEnvironmentVariable("BUN_JSC_useWasmMemory64", "1");
     fuzz_run.addFileArg(b.path("test/kwemu-unit-wasm.mjs"));
     fuzz_run.addFileArg(unit_wasm.getEmittedBin());
     fuzz_run.addPassthruArgs();

@@ -5,7 +5,7 @@
 //
 // From source (the page's Vite build, Vite's dev server) the worker is
 // `new Worker(new URL(...), { type: "module" })` on the entry file, which
-// Vite bundles as a worker. `pnpm build` (build.config.ts) bundles the entry
+// Vite bundles as a worker. `bun run build` (build.config.ts) bundles the entry
 // into one minified ES module that imports nothing and replaces the URL
 // below (the expression must appear exactly once in this file) with
 // inlineWorkerUrl(code): a Blob URL, revoked once the worker has started.
