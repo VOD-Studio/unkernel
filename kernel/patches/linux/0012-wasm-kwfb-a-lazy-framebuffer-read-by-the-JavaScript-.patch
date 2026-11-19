@@ -1,4 +1,4 @@
-From 080ead54d22f57e9d0061f2cac116ad828681496 Mon Sep 17 00:00:00 2001
+From 5b965b76344c0b0d325661c01a8126b25266592e Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:09 +0000
 Subject: [PATCH] wasm: kwfb, a lazy framebuffer read by the JavaScript host
@@ -49,12 +49,12 @@ Neither import suspends. No fbcon (VT stays off), no drawing helpers.
 ---
  drivers/video/fbdev/Kconfig  |  10 +
  drivers/video/fbdev/Makefile |   1 +
- drivers/video/fbdev/kwfb.c   | 342 +++++++++++++++++++++++++++++++++++
- 3 files changed, 353 insertions(+)
+ drivers/video/fbdev/kwfb.c   | 359 +++++++++++++++++++++++++++++++++++
+ 3 files changed, 370 insertions(+)
  create mode 100644 drivers/video/fbdev/kwfb.c
 
 diff --git a/drivers/video/fbdev/Kconfig b/drivers/video/fbdev/Kconfig
-index e8cd8cb7687..926faacee0f 100644
+index e8cd8cb76..926faacee 100644
 --- a/drivers/video/fbdev/Kconfig
 +++ b/drivers/video/fbdev/Kconfig
 @@ -1675,6 +1675,16 @@ config FB_VIRTUAL
@@ -75,7 +75,7 @@ index e8cd8cb7687..926faacee0f 100644
  	tristate "Xen virtual frame buffer support"
  	depends on FB && XEN
 diff --git a/drivers/video/fbdev/Makefile b/drivers/video/fbdev/Makefile
-index 0b17c878154..401a87776c4 100644
+index 0b17c8781..401a87776 100644
 --- a/drivers/video/fbdev/Makefile
 +++ b/drivers/video/fbdev/Makefile
 @@ -124,3 +124,4 @@ obj-$(CONFIG_FB_SIMPLE)           += simplefb.o
@@ -85,10 +85,10 @@ index 0b17c878154..401a87776c4 100644
 +obj-$(CONFIG_FB_KWFB)             += kwfb.o
 diff --git a/drivers/video/fbdev/kwfb.c b/drivers/video/fbdev/kwfb.c
 new file mode 100644
-index 00000000000..3c757f729dc
+index 000000000..063d9ffff
 --- /dev/null
 +++ b/drivers/video/fbdev/kwfb.c
-@@ -0,0 +1,342 @@
+@@ -0,0 +1,359 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * kwfb: a framebuffer whose pixels the JavaScript host (unkernel) reads
@@ -309,11 +309,16 @@ index 00000000000..3c757f729dc
 +static int kwfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 +{
 +	u32 w = var->xres, h = var->yres;
++	int maps;
 +
 +	kwfb_fit(&w, &h);
-+	if ((w != kwfb.width || h != kwfb.height) &&
-+	    (kwfb.users > 1 || atomic_read(&kwfb.maps)))
-+		return -EBUSY;
++	if (w != kwfb.width || h != kwfb.height) {
++		mutex_lock(&info->mm_lock);
++		maps = atomic_read(&kwfb.maps);
++		mutex_unlock(&info->mm_lock);
++		if (kwfb.users > 1 || maps)
++			return -EBUSY;
++	}
 +	kwfb_set_var(var, w, h);
 +	return 0;
 +}
@@ -326,11 +331,23 @@ index 00000000000..3c757f729dc
 +
 +	if (w == kwfb.width && h == kwfb.height)
 +		return 0;
-+	/* check_var said: only our file is open and nothing is mapped. */
++	/*
++	 * fb_mmap() holds info->mm_lock, not info->lock: hold it across the
++	 * map check, the allocation and the switch, so a racing mmap either
++	 * blocks the mode change first or maps the new buffer after it.
++	 */
++	mutex_lock(&info->mm_lock);
++	if (atomic_read(&kwfb.maps)) {
++		mutex_unlock(&info->mm_lock);
++		return -EBUSY;
++	}
 +	p = kwfb_alloc(w, h, &size);
-+	if (!p)
++	if (!p) {
++		mutex_unlock(&info->mm_lock);
 +		return -ENOMEM;
++	}
 +	kwfb_install(info, p, size, w, h);
++	mutex_unlock(&info->mm_lock);
 +	return 0;
 +}
 +

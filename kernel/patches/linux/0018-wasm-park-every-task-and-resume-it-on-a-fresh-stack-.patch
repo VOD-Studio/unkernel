@@ -1,4 +1,4 @@
-From f28303b045d0c60e62dacc19d617e6ffca935523 Mon Sep 17 00:00:00 2001
+From 6030f880fd622e04676728469f497ad5f3068405 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 13:43:35 +0000
 Subject: [PATCH] wasm: park every task and resume it on a fresh stack, and
@@ -58,7 +58,7 @@ add_vmfork_randomness() and then resumes every other task.
  create mode 100644 arch/wasm/kernel/park.c
 
 diff --git a/arch/wasm/Kconfig b/arch/wasm/Kconfig
-index a84bec4a18a..1ed6743adce 100644
+index a84bec4a1..1ed6743ad 100644
 --- a/arch/wasm/Kconfig
 +++ b/arch/wasm/Kconfig
 @@ -46,6 +46,10 @@ config MMU
@@ -73,7 +73,7 @@ index a84bec4a18a..1ed6743adce 100644
  	def_bool y
  
 diff --git a/arch/wasm/include/asm/irq.h b/arch/wasm/include/asm/irq.h
-index 93b808d6fca..1632b41c353 100644
+index 93b808d6f..1632b41c3 100644
 --- a/arch/wasm/include/asm/irq.h
 +++ b/arch/wasm/include/asm/irq.h
 @@ -13,6 +13,7 @@
@@ -86,7 +86,7 @@ index 93b808d6fca..1632b41c353 100644
  
 diff --git a/arch/wasm/include/asm/park.h b/arch/wasm/include/asm/park.h
 new file mode 100644
-index 00000000000..2aa5ffd70d1
+index 000000000..2aa5ffd70
 --- /dev/null
 +++ b/arch/wasm/include/asm/park.h
 @@ -0,0 +1,32 @@
@@ -123,7 +123,7 @@ index 00000000000..2aa5ffd70d1
 +
 +#endif /* _ASM_WASM_PARK_H */
 diff --git a/arch/wasm/include/asm/processor.h b/arch/wasm/include/asm/processor.h
-index 648e1c367b3..da9befa9706 100644
+index 648e1c367..da9befa97 100644
 --- a/arch/wasm/include/asm/processor.h
 +++ b/arch/wasm/include/asm/processor.h
 @@ -30,6 +30,10 @@ struct pt_regs;
@@ -138,7 +138,7 @@ index 648e1c367b3..da9befa9706 100644
  
  #define INIT_THREAD { }
 diff --git a/arch/wasm/include/asm/wasm.h b/arch/wasm/include/asm/wasm.h
-index d78af949ec5..f317d3f6710 100644
+index d78af949e..f317d3f67 100644
 --- a/arch/wasm/include/asm/wasm.h
 +++ b/arch/wasm/include/asm/wasm.h
 @@ -53,6 +53,19 @@ void __init wasm_load_initrd(void);
@@ -162,7 +162,7 @@ index d78af949ec5..f317d3f6710 100644
   * Console window size, rows << 16 | cols, or 0 if unknown. hvc_wasm reads it
   * when the tty is opened and on each input poll; the host raises
 diff --git a/arch/wasm/kernel/Makefile b/arch/wasm/kernel/Makefile
-index c269b3e69de..9e24c876077 100644
+index c269b3e69..9e24c8760 100644
 --- a/arch/wasm/kernel/Makefile
 +++ b/arch/wasm/kernel/Makefile
 @@ -7,6 +7,7 @@ obj-y += entry.o
@@ -174,7 +174,7 @@ index c269b3e69de..9e24c876077 100644
  obj-y += ptrace.o
  obj-y += random.o
 diff --git a/arch/wasm/kernel/entry.S b/arch/wasm/kernel/entry.S
-index 6d254367603..b1f3e265fcb 100644
+index 6d2543676..b1f3e265f 100644
 --- a/arch/wasm/kernel/entry.S
 +++ b/arch/wasm/kernel/entry.S
 @@ -52,6 +52,26 @@ wasm_arch_switch:
@@ -205,7 +205,7 @@ index 6d254367603..b1f3e265fcb 100644
   * ret_from_fork(prev, next): entry point of every new task, called by the
   * host on a fresh Wasm stack (JSPI "promising" export). Never returns.
 diff --git a/arch/wasm/kernel/irq.c b/arch/wasm/kernel/irq.c
-index 5715be576e8..fa7551ee9e9 100644
+index 5715be576..fa7551ee9 100644
 --- a/arch/wasm/kernel/irq.c
 +++ b/arch/wasm/kernel/irq.c
 @@ -13,6 +13,7 @@
@@ -236,7 +236,7 @@ index 5715be576e8..fa7551ee9e9 100644
  
 diff --git a/arch/wasm/kernel/park.c b/arch/wasm/kernel/park.c
 new file mode 100644
-index 00000000000..f899d66488e
+index 000000000..f899d6648
 --- /dev/null
 +++ b/arch/wasm/kernel/park.c
 @@ -0,0 +1,454 @@
@@ -695,7 +695,7 @@ index 00000000000..f899d66488e
 +}
 +device_initcall(kw_park_init);
 diff --git a/arch/wasm/kernel/process.c b/arch/wasm/kernel/process.c
-index d0ea9b5ac07..3cad124e5cb 100644
+index d0ea9b5ac..3cad124e5 100644
 --- a/arch/wasm/kernel/process.c
 +++ b/arch/wasm/kernel/process.c
 @@ -19,6 +19,7 @@
@@ -736,7 +736,7 @@ index d0ea9b5ac07..3cad124e5cb 100644
  	return 0;
  }
 diff --git a/arch/wasm/kernel/traps.c b/arch/wasm/kernel/traps.c
-index dd66e3abbf2..f1deec5f5b3 100644
+index dd66e3abb..f1deec5f5 100644
 --- a/arch/wasm/kernel/traps.c
 +++ b/arch/wasm/kernel/traps.c
 @@ -16,6 +16,7 @@

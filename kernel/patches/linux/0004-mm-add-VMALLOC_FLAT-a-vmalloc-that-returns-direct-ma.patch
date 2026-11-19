@@ -1,4 +1,4 @@
-From a618a9cb3fb97fe920584aead7a60b474ca8f8af Mon Sep 17 00:00:00 2001
+From 76eeceec5e513b0700aa79ebfa12676225a41c78 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:08 +0000
 Subject: [PATCH] mm: add VMALLOC_FLAT, a vmalloc that returns direct-mapped
@@ -22,7 +22,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
  create mode 100644 mm/vmalloc-flat.c
 
 diff --git a/mm/Kconfig b/mm/Kconfig
-index 604c58199ac..68ba95db79b 100644
+index 604c58199..68ba95db7 100644
 --- a/mm/Kconfig
 +++ b/mm/Kconfig
 @@ -1033,6 +1033,13 @@ config ARCH_SUPPORTS_PUD_PFNMAP
@@ -40,7 +40,7 @@ index 604c58199ac..68ba95db79b 100644
  # UP and nommu archs use km based percpu allocator
  #
 diff --git a/mm/Makefile b/mm/Makefile
-index e7245cb88c6..0428793c1a0 100644
+index e7245cb88..0428793c1 100644
 --- a/mm/Makefile
 +++ b/mm/Makefile
 @@ -37,7 +37,15 @@ mmu-y			:= nommu.o
@@ -62,7 +62,7 @@ index e7245cb88c6..0428793c1a0 100644
  ifdef CONFIG_CROSS_MEMORY_ATTACH
 diff --git a/mm/vmalloc-flat.c b/mm/vmalloc-flat.c
 new file mode 100644
-index 00000000000..9602f9b2153
+index 000000000..9602f9b21
 --- /dev/null
 +++ b/mm/vmalloc-flat.c
 @@ -0,0 +1,318 @@

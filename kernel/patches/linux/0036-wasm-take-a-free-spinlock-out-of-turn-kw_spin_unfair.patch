@@ -1,4 +1,4 @@
-From 564bc6bec8e6888a2d89608529cf89430cf97cb9 Mon Sep 17 00:00:00 2001
+From fb63fb1fb509b3771ef63ab590f2b4f07a66e4ab Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Tue, 17 Nov 2026 09:05:49 +0000
 Subject: [PATCH] wasm: take a free spinlock out of turn (kw_spin_unfair=, SMP)
@@ -38,7 +38,7 @@ __read_mostly flag per lock.
  2 files changed, 72 insertions(+), 13 deletions(-)
 
 diff --git a/arch/wasm/include/asm/spinlock.h b/arch/wasm/include/asm/spinlock.h
-index 1ead9e82279..13974347942 100644
+index 1ead9e822..139743479 100644
 --- a/arch/wasm/include/asm/spinlock.h
 +++ b/arch/wasm/include/asm/spinlock.h
 @@ -11,24 +11,28 @@
@@ -107,7 +107,7 @@ index 1ead9e82279..13974347942 100644
  {
  	/* Little endian: the owner is the low half. */
 diff --git a/arch/wasm/kernel/wait.c b/arch/wasm/kernel/wait.c
-index 4a69dca3fab..7320972287a 100644
+index 4a69dca3f..732097228 100644
 --- a/arch/wasm/kernel/wait.c
 +++ b/arch/wasm/kernel/wait.c
 @@ -20,10 +20,14 @@

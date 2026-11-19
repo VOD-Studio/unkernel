@@ -1,4 +1,4 @@
-From 701dd272f9938efcf9021f25a6630420f6b792ef Mon Sep 17 00:00:00 2001
+From fbf34c5d31cf9b504ed4964e02a186ca3b8c6925 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Sun, 15 Nov 2026 14:41:37 +0000
 Subject: [PATCH] wasm: kwvsock: reset connections after a snapshot restore
@@ -18,7 +18,7 @@ sockets stay, so new connections work.
  3 files changed, 80 insertions(+), 2 deletions(-)
 
 diff --git a/arch/wasm/kernel/park.c b/arch/wasm/kernel/park.c
-index f899d66488e..c5986eabefd 100644
+index f899d6648..c5986eabe 100644
 --- a/arch/wasm/kernel/park.c
 +++ b/arch/wasm/kernel/park.c
 @@ -40,8 +40,9 @@
@@ -69,7 +69,7 @@ index f899d66488e..c5986eabefd 100644
  	kw_unpark_all();
  	kw_park_finish(0);
 diff --git a/include/linux/kw_park.h b/include/linux/kw_park.h
-index d5e71f70002..78a88cfddf3 100644
+index d5e71f700..78a88cfdd 100644
 --- a/include/linux/kw_park.h
 +++ b/include/linux/kw_park.h
 @@ -21,11 +21,22 @@
@@ -108,7 +108,7 @@ index d5e71f70002..78a88cfddf3 100644
  
  #endif /* _LINUX_KW_PARK_H */
 diff --git a/net/vmw_vsock/kwvsock.c b/net/vmw_vsock/kwvsock.c
-index fedbe869114..90cb8521bb3 100644
+index fedbe8691..90cb8521b 100644
 --- a/net/vmw_vsock/kwvsock.c
 +++ b/net/vmw_vsock/kwvsock.c
 @@ -33,12 +33,22 @@

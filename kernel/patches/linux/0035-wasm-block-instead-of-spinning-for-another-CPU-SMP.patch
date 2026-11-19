@@ -1,4 +1,4 @@
-From bb3becc5ea6c7e0cbd8b210c762b2b63b56eb684 Mon Sep 17 00:00:00 2001
+From 2a84dc388050f301f4b1d9502eb94e57217ea231 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 23:07:54 +0000
 Subject: [PATCH] wasm: block instead of spinning for another CPU (SMP)
@@ -49,7 +49,7 @@ only on SMP, the rest is under CONFIG_SMP.
  create mode 100644 arch/wasm/kernel/wait.c
 
 diff --git a/arch/wasm/include/asm/Kbuild b/arch/wasm/include/asm/Kbuild
-index 253cec51c85..1c911ed7fc0 100644
+index 253cec51c..1c911ed7f 100644
 --- a/arch/wasm/include/asm/Kbuild
 +++ b/arch/wasm/include/asm/Kbuild
 @@ -5,7 +5,6 @@ generic-y += asm-offsets.h
@@ -61,7 +61,7 @@ index 253cec51c85..1c911ed7fc0 100644
  generic-y += tlb.h
  generic-y += user.h
 diff --git a/arch/wasm/include/asm/barrier.h b/arch/wasm/include/asm/barrier.h
-index 1abb0482c6f..fa1f387a96f 100644
+index 1abb0482c..fa1f387a9 100644
 --- a/arch/wasm/include/asm/barrier.h
 +++ b/arch/wasm/include/asm/barrier.h
 @@ -11,6 +11,34 @@
@@ -100,7 +100,7 @@ index 1abb0482c6f..fa1f387a96f 100644
  
  #endif /* _ASM_WASM_BARRIER_H */
 diff --git a/arch/wasm/include/asm/irq.h b/arch/wasm/include/asm/irq.h
-index 19aedb5842e..4394086442c 100644
+index 19aedb584..439408644 100644
 --- a/arch/wasm/include/asm/irq.h
 +++ b/arch/wasm/include/asm/irq.h
 @@ -24,7 +24,9 @@
@@ -115,7 +115,7 @@ index 19aedb5842e..4394086442c 100644
  #include <asm-generic/irq.h>
  
 diff --git a/arch/wasm/include/asm/smp.h b/arch/wasm/include/asm/smp.h
-index 8bda30c28a9..d36a684529a 100644
+index 8bda30c28..d36a68452 100644
 --- a/arch/wasm/include/asm/smp.h
 +++ b/arch/wasm/include/asm/smp.h
 @@ -21,6 +21,23 @@ void arch_send_call_function_single_ipi(int cpu);
@@ -144,7 +144,7 @@ index 8bda30c28a9..d36a684529a 100644
  /* kw_secondary_entry (entry.S): a secondary CPU's idle task starts here. */
 diff --git a/arch/wasm/include/asm/spinlock.h b/arch/wasm/include/asm/spinlock.h
 new file mode 100644
-index 00000000000..1ead9e82279
+index 000000000..1ead9e822
 --- /dev/null
 +++ b/arch/wasm/include/asm/spinlock.h
 @@ -0,0 +1,75 @@
@@ -224,7 +224,7 @@ index 00000000000..1ead9e82279
 +
 +#endif /* _ASM_WASM_SPINLOCK_H */
 diff --git a/arch/wasm/kernel/Makefile b/arch/wasm/kernel/Makefile
-index 1f9d572be1b..f1ad3ba5e00 100644
+index 1f9d572be..f1ad3ba5e 100644
 --- a/arch/wasm/kernel/Makefile
 +++ b/arch/wasm/kernel/Makefile
 @@ -13,7 +13,7 @@ obj-y += ptrace.o
@@ -238,7 +238,7 @@ index 1f9d572be1b..f1ad3ba5e00 100644
  obj-y += sys_riscv.o
 diff --git a/arch/wasm/kernel/wait.c b/arch/wasm/kernel/wait.c
 new file mode 100644
-index 00000000000..4a69dca3fab
+index 000000000..4a69dca3f
 --- /dev/null
 +++ b/arch/wasm/kernel/wait.c
 @@ -0,0 +1,231 @@

@@ -1,4 +1,4 @@
-From 7f31046471678a4da946e20e5d30e7797c76fa5d Mon Sep 17 00:00:00 2001
+From dd5024a6f76d41b850211506061fdb1e62b57966 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: add kw_defconfig
@@ -54,7 +54,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
 
 diff --git a/arch/wasm/configs/kw_defconfig b/arch/wasm/configs/kw_defconfig
 new file mode 100644
-index 00000000000..0e1809fd2b4
+index 000000000..0e1809fd2
 --- /dev/null
 +++ b/arch/wasm/configs/kw_defconfig
 @@ -0,0 +1,153 @@

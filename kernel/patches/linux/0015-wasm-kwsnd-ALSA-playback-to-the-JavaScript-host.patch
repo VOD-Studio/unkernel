@@ -1,4 +1,4 @@
-From c2beeed8b46f064329b567f35cebabf5cb0645af Mon Sep 17 00:00:00 2001
+From 7e042036197a2196cd7488d5a1e436eee64b9cc5 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: kwsnd, ALSA playback to the JavaScript host
@@ -47,7 +47,7 @@ OSS PCM emulation (/dev/dsp, which static SDL 1.2 builds use) is 29 KiB
  create mode 100644 sound/drivers/kwsnd.c
 
 diff --git a/sound/drivers/Kconfig b/sound/drivers/Kconfig
-index 6debd8e95cb..56fcfaa54c5 100644
+index 6debd8e95..56fcfaa54 100644
 --- a/sound/drivers/Kconfig
 +++ b/sound/drivers/Kconfig
 @@ -76,6 +76,15 @@ config SND_PCSP
@@ -67,7 +67,7 @@ index 6debd8e95cb..56fcfaa54c5 100644
  	tristate "Dummy (/dev/null) soundcard"
  	select SND_PCM
 diff --git a/sound/drivers/Makefile b/sound/drivers/Makefile
-index a08bdd70ec9..a5abb0cf1ad 100644
+index a08bdd70e..a5abb0cf1 100644
 --- a/sound/drivers/Makefile
 +++ b/sound/drivers/Makefile
 @@ -5,6 +5,7 @@
@@ -88,7 +88,7 @@ index a08bdd70ec9..a5abb0cf1ad 100644
  obj-$(CONFIG_SND_PCMTEST) += snd-pcmtest.o
 diff --git a/sound/drivers/kwsnd.c b/sound/drivers/kwsnd.c
 new file mode 100644
-index 00000000000..2d9f808a5eb
+index 000000000..2d9f808a5
 --- /dev/null
 +++ b/sound/drivers/kwsnd.c
 @@ -0,0 +1,307 @@

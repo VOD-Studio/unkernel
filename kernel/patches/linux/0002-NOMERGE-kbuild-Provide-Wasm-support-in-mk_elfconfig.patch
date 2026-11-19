@@ -1,4 +1,4 @@
-From 3b953f9a4c8bc33cee80c07e741578d485b279e0 Mon Sep 17 00:00:00 2001
+From 4d4823014d2776b93350a4dd7ef5de671e1a6199 Mon Sep 17 00:00:00 2001
 From: Joel Severin <joel.severin@icemanor.se>
 Date: Thu, 19 Feb 2026 22:43:37 +0100
 Subject: [PATCH] NOMERGE: kbuild: Provide Wasm support in mk_elfconfig
@@ -11,7 +11,7 @@ currently assumes that ELF is used by all targets.
  2 files changed, 20 insertions(+), 2 deletions(-)
 
 diff --git a/scripts/mod/mk_elfconfig.c b/scripts/mod/mk_elfconfig.c
-index e8cee4e4bc7..655b368c01e 100644
+index e8cee4e4b..655b368c0 100644
 --- a/scripts/mod/mk_elfconfig.c
 +++ b/scripts/mod/mk_elfconfig.c
 @@ -13,10 +13,15 @@ main(int argc, char **argv)
@@ -33,7 +33,7 @@ index e8cee4e4bc7..655b368c01e 100644
  	case ELFCLASS32:
  		printf("#define KERNEL_ELFCLASS ELFCLASS32\n");
 diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index 75374c64b8c..f009a687d66 100644
+index 75374c64b..f009a687d 100644
 --- a/scripts/mod/modpost.c
 +++ b/scripts/mod/modpost.c
 @@ -74,6 +74,8 @@ static unsigned int nr_unresolved;

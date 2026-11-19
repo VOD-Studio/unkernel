@@ -1,4 +1,4 @@
-From bd2122dce39ccf59938d2f776058fef09932015b Mon Sep 17 00:00:00 2001
+From 2a08d5ac98698bd8aa95dbced59d2acc89e49e60 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 14:54:54 +0000
 Subject: [PATCH] mm: skip folio_ref_add() of zero when mapping an order-0
@@ -12,7 +12,7 @@ anonymous fault.
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 diff --git a/mm/memory.c b/mm/memory.c
-index 9e395ad33ff..97b2921e48a 100644
+index 9e395ad33..97b2921e4 100644
 --- a/mm/memory.c
 +++ b/mm/memory.c
 @@ -5401,7 +5401,8 @@ void map_anon_folio_pte_nopf(struct folio *folio, pte_t *pte,

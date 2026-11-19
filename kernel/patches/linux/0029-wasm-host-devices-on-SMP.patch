@@ -1,4 +1,4 @@
-From 6179bca6c8b11875918f907732b17549b0ff1280 Mon Sep 17 00:00:00 2001
+From 06f6bb3ade1363654adc53cc7d660122d13bad5f Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:07:10 +0000
 Subject: [PATCH] wasm: host devices on SMP
@@ -24,7 +24,7 @@ SMP for now, with a boot message.
  8 files changed, 179 insertions(+), 14 deletions(-)
 
 diff --git a/drivers/block/kwblk.c b/drivers/block/kwblk.c
-index 9a0591e9b6c..0b7ca9a6682 100644
+index 9a0591e9b..0b7ca9a66 100644
 --- a/drivers/block/kwblk.c
 +++ b/drivers/block/kwblk.c
 @@ -251,6 +251,14 @@ static int __init kwblk_init(void)
@@ -43,7 +43,7 @@ index 9a0591e9b6c..0b7ca9a6682 100644
  	if (kwblk_major < 0)
  		return kwblk_major;
 diff --git a/drivers/input/kwinput.c b/drivers/input/kwinput.c
-index 93059b9670f..9c47827a339 100644
+index 93059b967..9c47827a3 100644
 --- a/drivers/input/kwinput.c
 +++ b/drivers/input/kwinput.c
 @@ -131,6 +131,11 @@ static int __init kwinput_init(void)
@@ -59,7 +59,7 @@ index 93059b9670f..9c47827a339 100644
  	kbd = kwinput_alloc(KWINPUT_KEYBOARD, "kwinput keyboard", 1);
  	mouse = kwinput_alloc(KWINPUT_MOUSE, "kwinput mouse", 2);
 diff --git a/drivers/misc/kwshm.c b/drivers/misc/kwshm.c
-index 50ae019a0e9..f1bf8b7cadc 100644
+index 50ae019a0..f1bf8b7ca 100644
 --- a/drivers/misc/kwshm.c
 +++ b/drivers/misc/kwshm.c
 @@ -629,6 +629,11 @@ static int __init kwshm_init(void)
@@ -75,7 +75,7 @@ index 50ae019a0e9..f1bf8b7cadc 100644
  	kwshm_pin_limit = totalram_pages() / 2;
  	INIT_WORK(&kwshm_work, kwshm_work_fn);
 diff --git a/drivers/net/kwnet.c b/drivers/net/kwnet.c
-index 58d472e593d..3ca58cbfa37 100644
+index 58d472e59..3ca58cbfa 100644
 --- a/drivers/net/kwnet.c
 +++ b/drivers/net/kwnet.c
 @@ -8,6 +8,10 @@
@@ -194,7 +194,7 @@ index 58d472e593d..3ca58cbfa37 100644
  
  	err = request_irq(WASM_IRQ_NET, kwnet_irq, 0, "kwnet", dev);
 diff --git a/drivers/tty/hvc/hvc_wasm.c b/drivers/tty/hvc/hvc_wasm.c
-index 155b935ce8d..eddb08e94f7 100644
+index 155b935ce..eddb08e94 100644
 --- a/drivers/tty/hvc/hvc_wasm.c
 +++ b/drivers/tty/hvc/hvc_wasm.c
 @@ -1,6 +1,7 @@
@@ -319,10 +319,10 @@ index 155b935ce8d..eddb08e94f7 100644
  	if (request_irq(WASM_IRQ_CONSOLE, hvc_wasm_input_irq, 0, "hvc_wasm",
  			NULL))
 diff --git a/drivers/video/fbdev/kwfb.c b/drivers/video/fbdev/kwfb.c
-index 3c757f729dc..f66e8273752 100644
+index 063d9ffff..375836056 100644
 --- a/drivers/video/fbdev/kwfb.c
 +++ b/drivers/video/fbdev/kwfb.c
-@@ -300,6 +300,11 @@ static int __init kwfb_init(void)
+@@ -317,6 +317,11 @@ static int __init kwfb_init(void)
  		pr_info("kwfb: no host display\n");
  		return 0;
  	}
@@ -335,7 +335,7 @@ index 3c757f729dc..f66e8273752 100644
  	/*
  	 * A parent on the platform bus: the X.Org fbdev driver skips a
 diff --git a/net/vmw_vsock/kwvsock.c b/net/vmw_vsock/kwvsock.c
-index 90cb8521bb3..4c088366a0c 100644
+index 90cb8521b..4c088366a 100644
 --- a/net/vmw_vsock/kwvsock.c
 +++ b/net/vmw_vsock/kwvsock.c
 @@ -105,6 +105,16 @@ struct kwvsock {
@@ -415,7 +415,7 @@ index 90cb8521bb3..4c088366a0c 100644
  
  err_irq:
 diff --git a/sound/drivers/kwsnd.c b/sound/drivers/kwsnd.c
-index 2d9f808a5eb..50d23ec21fe 100644
+index 2d9f808a5..50d23ec21 100644
 --- a/sound/drivers/kwsnd.c
 +++ b/sound/drivers/kwsnd.c
 @@ -273,6 +273,11 @@ static int __init kwsnd_init(void)

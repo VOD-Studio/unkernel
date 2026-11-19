@@ -1,4 +1,4 @@
-From a705485fed7e3f8ab466833d6b3669849d2449df Mon Sep 17 00:00:00 2001
+From a2a834e1ecc46761adaa5b95020bcb2f7894d31b Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 13:12:25 +0000
 Subject: [PATCH] wasm: optional atomics and shared-memory builds (KW_ATOMICS,
@@ -9,7 +9,7 @@ Subject: [PATCH] wasm: optional atomics and shared-memory builds (KW_ATOMICS,
  1 file changed, 16 insertions(+)
 
 diff --git a/arch/wasm/Makefile b/arch/wasm/Makefile
-index 4492361d97d..34e941e06b6 100644
+index 4492361d9..34e941e06 100644
 --- a/arch/wasm/Makefile
 +++ b/arch/wasm/Makefile
 @@ -10,6 +10,22 @@ KCFLAGS += -march=wasm64

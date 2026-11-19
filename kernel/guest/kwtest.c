@@ -136,6 +136,7 @@ static int failures;
 #ifdef __riscv
 #include <setjmp.h>
 #include <sys/auxv.h>
+#include <linux/fb.h>
 #include <linux/futex.h>
 #include <poll.h>
 #include <sys/epoll.h>
@@ -1111,7 +1112,11 @@ static void *ua_reader(void *arg)
 }
 
 #define UA_ITERS 100000
+#define UA_SCALAR_ITERS 20000
 static unsigned ua_word, ua_dummy;
+static volatile unsigned ua_flip, ua_cpu_word;
+static volatile int ua_flip_stop, ua_cpu_torn;
+
 static void *ua_adder(void *arg)
 {
 	unsigned long mask = 1UL << (long)arg;
@@ -1132,6 +1137,30 @@ static void *ua_wakeop(void *arg)
 	for (i = 0; i < UA_ITERS; i++)
 		syscall(SYS_futex, &ua_dummy, FUTEX_WAKE_OP_PRIVATE, 0, 0, &ua_word,
 			FUTEX_OP(FUTEX_OP_ADD, 1, FUTEX_OP_CMP_EQ, 0));
+	return NULL;
+}
+
+/*
+ * Flip ua_flip between 0x5a5a0000 and 0x00005a5a (a torn get_user() in
+ * FUTEX_WAIT could see 0 or 0x5a5a5a5a), and store ~0u to ua_cpu_word while
+ * checking that put_user() in getcpu() never tears against it.
+ */
+static void *ua_flipper(void *arg)
+{
+	unsigned long mask = 1UL << ((long)arg & 63);
+	long online = ((long)arg >> 8) ?: 1;
+
+	syscall(SYS_sched_setaffinity, 0, sizeof(mask), &mask);
+	while (!__atomic_load_n(&ua_flip_stop, __ATOMIC_RELAXED)) {
+		unsigned c;
+
+		__atomic_store_n(&ua_flip, 0x5a5a0000u, __ATOMIC_RELAXED);
+		__atomic_store_n(&ua_flip, 0x00005a5au, __ATOMIC_RELAXED);
+		c = __atomic_load_n(&ua_cpu_word, __ATOMIC_RELAXED);
+		if (c != ~0u && c >= (unsigned)online)
+			__atomic_fetch_add(&ua_cpu_torn, 1, __ATOMIC_RELAXED);
+		__atomic_store_n(&ua_cpu_word, ~0u, __ATOMIC_RELAXED);
+	}
 	return NULL;
 }
 
@@ -1211,6 +1240,55 @@ static void uaccess_checks(void)
 	}
 	CHECK(sum == 2 * 2 * UA_ITERS, "uaccess: FUTEX_WAKE_OP add beside amoadd on %s CPU: %u, want %u",
 	      online > 1 ? "another" : "the same", sum, 2 * 2 * UA_ITERS);
+
+	/*
+	 * 3. Aligned get_user() and put_user() scalar atomicity, and unaligned
+	 * access across a page boundary.
+	 */
+	{
+		struct timespec ts = { 0, 1000000 };
+		unsigned long mask0 = 1, all = online >= 63 ? ~0UL : (1UL << online) - 1;
+		int get_torn = 0, unal_ok = 0;
+		unsigned unal_cpu = ~0u;
+		char *strad = mmap(NULL, 2 * 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		pthread_t fl;
+
+		ua_flip = 0x5a5a0000u;
+		ua_cpu_word = ~0u;
+		ua_flip_stop = 0;
+		ua_cpu_torn = 0;
+		syscall(SYS_sched_setaffinity, 0, sizeof(mask0), &mask0);
+		if (!pthread_create(&fl, NULL, ua_flipper, (void *)((online << 8) | (online > 1)))) {
+			for (i = 0; i < UA_SCALAR_ITERS; i++) {
+				unsigned want = (i & 1) ? 0x5a5a5a5au : 0u, c;
+				long r = syscall(SYS_futex, &ua_flip, FUTEX_WAIT_PRIVATE, want, &ts, NULL, 0);
+
+				if (r != -1 || errno != EAGAIN)
+					get_torn++;
+				if (syscall(SYS_getcpu, &ua_cpu_word, NULL, NULL))
+					ua_cpu_torn++;
+				c = __atomic_load_n(&ua_cpu_word, __ATOMIC_RELAXED);
+				if (c != ~0u && c >= (unsigned)online)
+					ua_cpu_torn++;
+			}
+			__atomic_store_n(&ua_flip_stop, 1, __ATOMIC_RELAXED);
+			pthread_join(fl, NULL);
+		} else {
+			get_torn++;
+		}
+		syscall(SYS_sched_setaffinity, 0, sizeof(all), &all);
+		if (strad != MAP_FAILED) {
+			memset(strad + 4092, 0xff, 8);
+			if (!syscall(SYS_getcpu, strad + 4094, NULL, NULL)) {
+				memcpy(&unal_cpu, strad + 4094, sizeof(unal_cpu));
+				unal_ok = unal_cpu < (unsigned)online;
+			}
+			munmap(strad, 2 * 4096);
+		}
+		CHECK(!get_torn && !ua_cpu_torn && unal_ok,
+		      "uaccess: aligned get_user/put_user untorn (%d/%d torn in %d rounds), unaligned across pages: %s (cpu %u)",
+		      get_torn, ua_cpu_torn, UA_SCALAR_ITERS, unal_ok ? "ok" : "BAD", unal_cpu);
+	}
 }
 
 /*
@@ -1454,19 +1532,59 @@ static int open_err(const char *path)
 	return 0;
 }
 
+static struct {
+	int fd;
+	volatile int ready, stop;
+	int changes, bad;
+} fb_race;
+
+static void *fb_mode_changer(void *arg)
+{
+	unsigned long mask = 1UL << (long)arg;
+	struct fb_var_screeninfo var;
+	int step = 0;
+
+	syscall(SYS_sched_setaffinity, 0, sizeof(mask), &mask);
+	if (ioctl(fb_race.fd, FBIOGET_VSCREENINFO, &var)) {
+		fb_race.bad++;
+		__atomic_store_n(&fb_race.ready, 1, __ATOMIC_RELEASE);
+		return NULL;
+	}
+	__atomic_store_n(&fb_race.ready, 1, __ATOMIC_RELEASE);
+	while (!__atomic_load_n(&fb_race.stop, __ATOMIC_ACQUIRE)) {
+		struct fb_var_screeninfo v = var;
+
+		v.xres = v.xres_virtual = (step & 1) ? 320 : 256;
+		v.yres = v.yres_virtual = (step & 1) ? 240 : 192;
+		step++;
+		if (!ioctl(fb_race.fd, FBIOPUT_VSCREENINFO, &v))
+			__atomic_fetch_add(&fb_race.changes, 1, __ATOMIC_RELEASE);
+		else if (errno != EBUSY)
+			fb_race.bad++;
+		if (!(long)arg)
+			sched_yield();
+	}
+	return NULL;
+}
+
 /*
  * kwfb (drivers/video/fbdev/kwfb.c): /dev/fb0 (char 29:0; chrdev_node)
  * exists only with a host display (CLI --display). One program at a time:
  * while an open file exists a second open fails with EBUSY, also once its
  * opener has closed it but a forked child still holds the shared file, and
  * while a mapping outlives close(); when the last reference is gone (the
- * child's exit, munmap) the device opens again.
+ * child's exit, munmap) the device opens again. And an mmap racing
+ * FBIOPUT_VSCREENINFO from another thread never maps a stale buffer.
  */
 static void fb_checks(void)
 {
 	const char *node;
 	int fd = open("/proc/fb", O_RDONLY), n, a, b, go[2] = { -1, -1 }, status = 0, made;
 	int a_err, busy_open, busy_child, after_child, busy_map, after_map;
+	int race_maps = 0, race_stale = 0, race_busy = 0;
+	long online = sysconf(_SC_NPROCESSORS_ONLN);
+	unsigned long mask0 = 1, all = online >= 63 ? ~0UL : (1UL << online) - 1;
+	struct fb_var_screeninfo orig_var;
 	char buf[256], c = 0;
 	void *map = MAP_FAILED;
 	pid_t pid;
@@ -1512,16 +1630,62 @@ static void fb_checks(void)
 	if (map != MAP_FAILED)
 		munmap(map, 4096);
 	after_map = open_err(node);
+
+	/* mmap racing FBIOPUT_VSCREENINFO from another thread. */
+	memset(&fb_race, 0, sizeof(fb_race));
+	fb_race.fd = open(node, O_RDWR);
+	if (fb_race.fd >= 0 && !ioctl(fb_race.fd, FBIOGET_VSCREENINFO, &orig_var)) {
+		pthread_t th;
+
+		syscall(SYS_sched_setaffinity, 0, sizeof(mask0), &mask0);
+		if (!pthread_create(&th, NULL, fb_mode_changer, (void *)(long)(online > 1))) {
+			while (!__atomic_load_n(&fb_race.ready, __ATOMIC_ACQUIRE))
+				sched_yield();
+			for (int i = 1; i <= 200; i++) {
+				uint32_t tag = 0xfb000000u | (uint32_t)i, got = 0;
+				uint32_t *p = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_SHARED, fb_race.fd, 0);
+				struct fb_var_screeninfo v = orig_var;
+
+				if (p == MAP_FAILED) {
+					fb_race.bad++;
+					break;
+				}
+				race_maps++;
+				__atomic_store_n(p, tag, __ATOMIC_RELEASE);
+				if (pread(fb_race.fd, &got, sizeof(got), 0) != sizeof(got) || got != tag)
+					race_stale++;
+				v.xres = v.xres_virtual = 128;
+				v.yres = v.yres_virtual = 128;
+				if (!ioctl(fb_race.fd, FBIOPUT_VSCREENINFO, &v) || errno != EBUSY)
+					race_busy++;
+				munmap(p, 4096);
+				if ((i & 7) == 0)
+					sched_yield();
+			}
+			__atomic_store_n(&fb_race.stop, 1, __ATOMIC_RELEASE);
+			pthread_join(th, NULL);
+		} else {
+			fb_race.bad++;
+		}
+		syscall(SYS_sched_setaffinity, 0, sizeof(all), &all);
+		ioctl(fb_race.fd, FBIOPUT_VSCREENINFO, &orig_var);
+		close(fb_race.fd);
+	} else {
+		if (fb_race.fd >= 0)
+			close(fb_race.fd);
+		fb_race.bad++;
+	}
 	if (made)
 		unlink(node);
 	CHECK(a >= 0 && busy_open == EBUSY && busy_child == EBUSY && WIFEXITED(status) && !after_child &&
-	      map != MAP_FAILED && busy_map == EBUSY && !after_map,
+	      map != MAP_FAILED && busy_map == EBUSY && !after_map &&
+	      !fb_race.bad && race_maps == 200 && fb_race.changes > 0 && !race_stale && !race_busy,
 	      "kwfb: first open %s; second open: %s, held by a forked child: %s, after its exit: %s; mmap %s, "
-	      "open while mapped after close: %s, after munmap: %s",
+	      "open while mapped after close: %s, after munmap: %s; mmap vs mode change: %d maps, %d mode changes, %d stale, %d allowed while mapped",
 	      a >= 0 ? "ok" : strerror(a_err), busy_open ? strerror(busy_open) : "allowed?",
 	      busy_child ? strerror(busy_child) : "allowed?", after_child ? strerror(after_child) : "ok",
 	      map != MAP_FAILED ? "ok" : "FAILED", busy_map ? strerror(busy_map) : "allowed?",
-	      after_map ? strerror(after_map) : "ok");
+	      after_map ? strerror(after_map) : "ok", race_maps, fb_race.changes, race_stale, race_busy);
 }
 
 /*
@@ -2367,6 +2531,191 @@ static void mv_exec_check(void)
 	      away, n, cpus);
 }
 
+/*
+ * A system call interrupted by a SA_RESTART signal (-ERESTARTSYS) while an
+ * affinity change moves the task to another CPU: kw_exit_to_user_move()
+ * switches out before arch_do_signal_or_restart(), and kw_user_resume() on
+ * the new CPU (sched_stay_switch_tail(), which keeps TIF_SIGPENDING) must
+ * deliver the signal there and restart the system call without EINTR.
+ */
+#define MV_RESTARTS 20
+static struct {
+	int p[2], ack[2];
+	volatile pid_t tid;
+	volatile int sigs, sig_cpu, read_cpu, bad;
+} mv_rs;
+
+static void mv_on_restart_sig(int sig)
+{
+	(void)sig;
+	mv_rs.sig_cpu = mv_cpu();
+	__atomic_fetch_add(&mv_rs.sigs, 1, __ATOMIC_RELEASE);
+}
+
+static void *mv_restart_fn(void *arg)
+{
+	int i;
+
+	(void)arg;
+	mv_rs.tid = syscall(SYS_gettid);
+	for (i = 0; i < MV_RESTARTS; i++) {
+		char c = 0;
+		ssize_t n;
+
+		if (write(mv_rs.ack[1], "r", 1) != 1) {
+			mv_rs.bad++;
+			break;
+		}
+		n = read(mv_rs.p[0], &c, 1);
+		mv_rs.read_cpu = mv_cpu();
+		if (n != 1 || c != (char)('a' + (i % 26)))
+			mv_rs.bad++;
+		if (write(mv_rs.ack[1], "d", 1) != 1) {
+			mv_rs.bad++;
+			break;
+		}
+	}
+	return NULL;
+}
+
+static void mv_restart_check(void)
+{
+	struct sigaction sa = { .sa_handler = mv_on_restart_sig, .sa_flags = SA_RESTART }, old;
+	pthread_t th;
+	int i, err = 0, moved = 0;
+
+	memset(&mv_rs, 0, sizeof(mv_rs));
+	if (pipe(mv_rs.p) || pipe(mv_rs.ack)) {
+		CHECK(0, "move: SA_RESTART across CPU move: no pipes");
+		return;
+	}
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGUSR1, &sa, &old);
+	if (pthread_create(&th, NULL, mv_restart_fn, NULL))
+		err++;
+	while (!err && !mv_rs.tid)
+		usleep(1000);
+	for (i = 0; i < MV_RESTARTS && !err; i++) {
+		char tag = 0, byte = (char)('a' + (i % 26));
+		int cpu, target, s0;
+		long t0;
+
+		if (read(mv_rs.ack[0], &tag, 1) != 1 || tag != 'r') {
+			err++;
+			break;
+		}
+		/* Wait until it is asleep in read(). */
+		usleep(2000);
+		cpu = mv_task_cpu(mv_rs.tid);
+		target = (cpu + 1) % mv.online;
+		s0 = __atomic_load_n(&mv_rs.sigs, __ATOMIC_ACQUIRE);
+		mv_rs.sig_cpu = -1;
+		mv_rs.read_cpu = -1;
+		/* Queue the move while held in read(), then wake it with SIGUSR1. */
+		if (mv_setaff(mv_rs.tid, 1UL << target) ||
+		    syscall(SYS_tgkill, getpid(), mv_rs.tid, SIGUSR1)) {
+			err++;
+			break;
+		}
+		t0 = mv_now_ms();
+		while (__atomic_load_n(&mv_rs.sigs, __ATOMIC_ACQUIRE) == s0 && mv_now_ms() - t0 < 2000)
+			usleep(500);
+		if (__atomic_load_n(&mv_rs.sigs, __ATOMIC_ACQUIRE) != s0 + 1) {
+			err++;
+			break;
+		}
+		if (write(mv_rs.p[1], &byte, 1) != 1 ||
+		    read(mv_rs.ack[0], &tag, 1) != 1 || tag != 'd') {
+			err++;
+			break;
+		}
+		moved += mv_rs.sig_cpu == target && mv_rs.read_cpu == target;
+	}
+	if (!err)
+		pthread_join(th, NULL);
+	sigaction(SIGUSR1, &old, NULL);
+	close(mv_rs.p[0]);
+	close(mv_rs.p[1]);
+	close(mv_rs.ack[0]);
+	close(mv_rs.ack[1]);
+	CHECK(!err && !mv_rs.bad && mv_rs.sigs == MV_RESTARTS && moved == MV_RESTARTS,
+	      "move: %d SA_RESTART signals waking read() into a CPU move: %d signals, %d restarted on the new CPU, %d bad",
+	      MV_RESTARTS, mv_rs.sigs, moved, mv_rs.bad);
+}
+
+/*
+ * SMP boundary checks: a held kthread (kthreadd, PID 2) refuses an affinity
+ * mask that excludes its CPU with EBUSY; and flipping kw_spin_unfair
+ * between 0 (ticket locks) and 1 (steal wait) while threads on every CPU
+ * contend on a kernel spinlock (files->file_lock in dup/close) works.
+ */
+static volatile int mv_spin_stop, mv_spin_bad;
+
+static void *mv_spin_fn(void *arg)
+{
+	int cpu = (int)(long)arg;
+
+	mv_setaff(0, 1UL << (cpu % mv.online));
+	while (!__atomic_load_n(&mv_spin_stop, __ATOMIC_RELAXED)) {
+		int fd = dup(0);
+
+		if (fd < 0 || close(fd))
+			__atomic_fetch_add(&mv_spin_bad, 1, __ATOMIC_RELAXED);
+	}
+	return NULL;
+}
+
+static void mv_edge_check(void)
+{
+	int kt_cpu = -1, kt_err = 0, pfd, flips = 0, i, n = mv.online > 8 ? 8 : mv.online, made = 0;
+	char stat_buf[512], *p, orig = 'Y';
+	pthread_t th[8];
+
+	/* PID 2 is kthreadd, held on the CPU it started on (CPU 0). */
+	pfd = open("/proc/2/stat", O_RDONLY);
+	if (pfd >= 0) {
+		int r = read(pfd, stat_buf, sizeof(stat_buf) - 1), field = 2;
+
+		close(pfd);
+		stat_buf[r > 0 ? r : 0] = 0;
+		p = strrchr(stat_buf, ')');
+		for (p = p ? p + 1 : NULL; p && *p && field < 39; p++)
+			if (*p == ' ')
+				field++;
+		if (p && field == 39)
+			kt_cpu = atoi(p);
+	}
+	if (kt_cpu >= 0 && kt_cpu < mv.online)
+		kt_err = -mv_setaff(2, 1UL << ((kt_cpu + 1) % mv.online));
+
+	mkdir("/sys", 0555);
+	mount("sysfs", "/sys", "sysfs", 0, NULL);
+	mv_spin_stop = 0;
+	mv_spin_bad = 0;
+	for (i = 0; i < n; i++)
+		made += !pthread_create(&th[i], NULL, mv_spin_fn, (void *)(long)i);
+	pfd = open("/sys/module/kernel/parameters/kw_spin_unfair", O_RDWR);
+	if (pfd >= 0) {
+		if (pread(pfd, &orig, 1, 0) != 1)
+			orig = 'Y';
+		for (i = 0; i < 10; i++) {
+			const char *v = (i & 1) ? "1\n" : "0\n";
+
+			if (pwrite(pfd, v, 2, 0) == 2)
+				flips++;
+			usleep(2000);
+		}
+		pwrite(pfd, orig == 'N' ? "0\n" : "1\n", 2, 0);
+		close(pfd);
+	}
+	__atomic_store_n(&mv_spin_stop, 1, __ATOMIC_RELEASE);
+	for (i = 0; i < made; i++)
+		pthread_join(th[i], NULL);
+	CHECK(kt_err == EBUSY && made == n && flips == 10 && !mv_spin_bad,
+	      "move: held kthread affinity: %s (CPU %d); kw_spin_unfair flipped %d times under %d-CPU spinlock contention: %d bad",
+	      kt_err ? strerror(kt_err) : "allowed?", kt_cpu, flips, made, mv_spin_bad);
+}
+
 static void move_checks(void)
 {
 	struct mv_stats a, b;
@@ -2390,6 +2739,8 @@ static void move_checks(void)
 	mv_pingpong_check();
 	mv_wake_check();
 	mv_exec_check();
+	mv_restart_check();
+	mv_edge_check();
 	mv_setaff(0, mv.all);
 	if (mv_stats_read(&b)) {
 		CHECK(0, "move: no /proc/kwmove");
@@ -2751,6 +3102,95 @@ static void js_smc_check(void)
 	      done_rw, done_rm, done_ne, jx.calls, jx.stale, jx.wrong, jx.ran_noexec, jx.faults, mv_now_ms() - t0);
 }
 
+/*
+ * Lazy-TLB shootdown deferral (arch/wasm/mm/tlb.c, kw_tlb_lazy /
+ * kw_tlb_stale): this thread fills CPU 1's kwemu read, write and exec TLBs
+ * (including compiled code), then moves to CPU 0 so CPU 1 idles in lazy TLB
+ * mode with the mm still loaded. On CPU 0, mremap() replaces the data and
+ * code pages and mprotect() makes a second data page read-only (marking
+ * CPU 1 stale instead of waiting for an IPI). Moving back to CPU 1 must
+ * flush CPU 1's TLBs in switch_mm(): it sees the new data and code and
+ * faults on a write to the read-only page.
+ */
+static void do_write_u64(void *p)
+{
+	*(volatile uint64_t *)p = 0xdeadbeefUL;
+}
+
+static void js_lazy_tlb_check(void)
+{
+	uint64_t *d1 = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	uint64_t *d2 = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	uint32_t *code = mmap(NULL, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	int i, rounds = 10, bad = 0;
+
+	if (d1 == MAP_FAILED || d2 == MAP_FAILED || code == MAP_FAILED) {
+		CHECK(0, "jit: lazy-TLB flush: mmap failed");
+		return;
+	}
+	for (i = 1; i <= rounds; i++) {
+		uint64_t *nd;
+		uint32_t *nc;
+		unsigned long r;
+
+		/* Fill CPU 1's read, write and exec TLBs, and compile code there. */
+		if (mv_setaff(0, 2) || mv_cpu() != 1) {
+			bad++;
+			break;
+		}
+		*d1 = 0x11110000UL | (unsigned long)i;
+		*d2 = 0x22220000UL | (unsigned long)i;
+		js_gen(code, i);
+		__builtin___clear_cache((char *)code, (char *)(code + 4));
+		r = 0;
+		for (int k = 0; k < 2500; k++)
+			r = ((unsigned long (*)(unsigned long, unsigned long))code)(0, JS_PASSES);
+		if (*d1 != (0x11110000UL | (unsigned long)i) || *d2 != (0x22220000UL | (unsigned long)i) ||
+		    r != (unsigned long)JS_PASSES * (unsigned long)i)
+			bad++;
+
+		/* Move to CPU 0: CPU 1 enters lazy TLB mode (idle). */
+		if (mv_setaff(0, 1) || mv_cpu() != 0) {
+			bad++;
+			break;
+		}
+		nd = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		nc = mmap(NULL, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		if (nd == MAP_FAILED || nc == MAP_FAILED) {
+			bad++;
+			break;
+		}
+		*nd = 0x99990000UL | (unsigned long)i;
+		js_gen(nc, i + 20);
+		if ((void *)syscall(SYS_mremap, nd, 4096, 4096, 1 | 2, d1) != d1 ||
+		    (void *)syscall(SYS_mremap, nc, 4096, 4096, 1 | 2, code) != code ||
+		    mprotect(d2, 4096, PROT_READ)) {
+			bad++;
+			break;
+		}
+
+		/* Back to CPU 1: switch_mm() must flush its stale TLBs and code. */
+		if (mv_setaff(0, 2) || mv_cpu() != 1) {
+			bad++;
+			break;
+		}
+		r = ((unsigned long (*)(unsigned long, unsigned long))code)(0, JS_PASSES);
+		if (*d1 != (0x99990000UL | (unsigned long)i) ||
+		    r != (unsigned long)JS_PASSES * (unsigned long)(i + 20) ||
+		    catch_sig(do_write_u64, d2) != SIGSEGV ||
+		    *d2 != (0x22220000UL | (unsigned long)i))
+			bad++;
+		mprotect(d2, 4096, PROT_READ | PROT_WRITE);
+	}
+	mv_setaff(0, mv.all);
+	munmap(d1, 4096);
+	munmap(d2, 4096);
+	munmap(code, 4096);
+	CHECK(!bad && i == rounds + 1,
+	      "jit: lazy-TLB flush across idle CPU 1 (%d rounds of mremap data + compiled code + mprotect RO on CPU 0): %d bad",
+	      rounds, bad);
+}
+
 static void jit_smp_checks(void)
 {
 	mv.online = sysconf(_SC_NPROCESSORS_ONLN);
@@ -2765,6 +3205,7 @@ static void jit_smp_checks(void)
 	js_store_check();
 	js_mig_check();
 	js_smc_check();
+	js_lazy_tlb_check();
 	mv_setaff(0, mv.all);
 }
 #endif /* __riscv */
@@ -2800,6 +3241,7 @@ int main(int argc, char **argv)
 	if (argc > 1 && !strcmp(argv[1], "smp")) {
 		mount("proc", "/proc", "proc", 0, NULL);
 		uaccess_checks();
+		fb_checks();
 		smp_checks();
 		move_checks();
 		jit_smp_checks();

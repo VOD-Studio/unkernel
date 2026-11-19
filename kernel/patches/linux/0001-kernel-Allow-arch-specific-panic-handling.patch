@@ -1,4 +1,4 @@
-From e2307836a6fe02b58290c8ab19a3ace2f423ba1b Mon Sep 17 00:00:00 2001
+From d8a382777341fc52f8b76c719a63af34f0de7cde Mon Sep 17 00:00:00 2001
 From: Joel Severin <joel.severin@icemanor.se>
 Date: Sun, 14 Sep 2025 17:03:25 +0200
 Subject: [PATCH] kernel: Allow arch-specific panic handling
@@ -13,7 +13,7 @@ Wasm) if they can intercept panic() calls right when they happen.
  create mode 100644 include/asm-generic/panic.h
 
 diff --git a/include/asm-generic/Kbuild b/include/asm-generic/Kbuild
-index 2bc00c67dc5..ff75374753e 100644
+index 2bc00c67d..ff7537475 100644
 --- a/include/asm-generic/Kbuild
 +++ b/include/asm-generic/Kbuild
 @@ -42,6 +42,7 @@ mandatory-y += mmu_context.h
@@ -26,7 +26,7 @@ index 2bc00c67dc5..ff75374753e 100644
  mandatory-y += percpu_types.h
 diff --git a/include/asm-generic/panic.h b/include/asm-generic/panic.h
 new file mode 100644
-index 00000000000..5f1a0ac69a8
+index 000000000..5f1a0ac69
 --- /dev/null
 +++ b/include/asm-generic/panic.h
 @@ -0,0 +1,12 @@
@@ -43,7 +43,7 @@ index 00000000000..5f1a0ac69a8
 +
 +#endif /* _ASM_GENERIC_PANIC_H */
 diff --git a/kernel/panic.c b/kernel/panic.c
-index cec27160193..cb56022e699 100644
+index cec271601..cb56022e6 100644
 --- a/kernel/panic.c
 +++ b/kernel/panic.c
 @@ -38,6 +38,7 @@

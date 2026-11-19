@@ -1,4 +1,4 @@
-From 9a792552ee68edaa10055b2cb3d784de1657aa51 Mon Sep 17 00:00:00 2001
+From 01e4b10c6bb3a08fa1d8306cb50209fca75c79e1 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 20:16:04 +0000
 Subject: [PATCH] wasm: kwsnd on SMP
@@ -16,7 +16,7 @@ before its frames. The UP build is unchanged.
  1 file changed, 113 insertions(+), 9 deletions(-)
 
 diff --git a/sound/drivers/kwsnd.c b/sound/drivers/kwsnd.c
-index 50d23ec21fe..6d36e5dc10c 100644
+index 50d23ec21..6d36e5dc1 100644
 --- a/sound/drivers/kwsnd.c
 +++ b/sound/drivers/kwsnd.c
 @@ -35,6 +35,14 @@

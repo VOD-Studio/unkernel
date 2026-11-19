@@ -1,4 +1,4 @@
-From 81327b93517f3ba701e10c507f6e923590366766 Mon Sep 17 00:00:00 2001
+From ac213e7b583699585d2be1514bd38b1c3f9f3ff4 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: sysrq: observe keyboards passively instead of opening
@@ -25,7 +25,7 @@ as soon as kernel.sysrq is set non-zero, which systemd's 50-default.conf
  1 file changed, 7 insertions(+)
 
 diff --git a/drivers/tty/sysrq.c b/drivers/tty/sysrq.c
-index c2e4b31b699..954cc39667a 100644
+index c2e4b31b6..954cc3966 100644
 --- a/drivers/tty/sysrq.c
 +++ b/drivers/tty/sysrq.c
 @@ -1031,10 +1031,17 @@ static const struct input_device_id sysrq_ids[] = {

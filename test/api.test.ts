@@ -39,11 +39,14 @@ const CONCURRENCY = Number(process.env.UNKERNEL_TEST_CONCURRENCY) || availablePa
 
 /** Does the kernel under test have kwvsock (net/vmw_vsock/kwvsock.c) and kwshm (drivers/misc/kwshm.c)? */
 const kernelBytes = readFileSync(kernelFile);
-const kernelImports = WebAssembly.Module.imports(await WebAssembly.compile(kernelBytes));
+const kernelModule = await WebAssembly.compile(kernelBytes);
+const kernelImports = WebAssembly.Module.imports(kernelModule);
 /** 9p adds no import; its client's version string is in the kernel only with NET_9P (kw_defconfig). */
 const kernelHas9p = kernelBytes.includes("9P2000.L");
 const kernelHasVsock = kernelImports.some((i) => i.name === "wasm_driver_vsock_init");
 const kernelHasShm = kernelImports.some((i) => i.name === "wasm_driver_shm_init");
+const kernelIsSmp = kernelImports.some((i) => i.name === "wasm_cpu_start");
+const kernelHasSmp = kernelIsSmp || WebAssembly.Module.customSections(kernelModule, "unkernel.kernel.smp.kwpatch").length > 0;
 
 type BootOptions = NonNullable<Parameters<typeof createKernel>[0]>;
 // A failed assertion must not leave a kernel running (it would keep the test process alive).
@@ -1731,6 +1734,162 @@ describe("api", { concurrency: CONCURRENCY }, () => {
 			/snapshot: disk wda \(.*data\.img\) was written after the snapshot/);
 	});
 
+	test("SMP: ConsoleRing wrap-around, record splitting, 'take', and 'post' batching, stall drop and recovery; ConsoleOrder reordering and flush", async () => {
+		const { ConsoleRing } = await import("../js/core/console-ring.ts");
+		const { ConsoleOrder } = await import("../js/core/cpu.ts");
+		const enc = new TextEncoder(), dec = new TextDecoder();
+
+		// Invalid ring sizes are refused.
+		assert.throws(() => new ConsoleRing(new SharedArrayBuffer(64)), /bad size/);
+		assert.throws(() => new ConsoleRing(new SharedArrayBuffer(64 + 100)), /bad size/);
+
+		// 64-byte control header + 256-byte data ring (#maxRecord = 64).
+		const ring = new ConsoleRing(new SharedArrayBuffer(64 + 256));
+		assert.ok(ring.quiet && !ring.pending && !ring.closed);
+		// Wrap around the 256-byte ring boundary and split a 150-byte write (64 + 64 + 22) with "take".
+		const taken: Uint8Array[] = [];
+		const msg1 = enc.encode("A".repeat(60) + "B".repeat(60) + "C".repeat(60));
+		assert.equal(ring.write(msg1, 0, msg1.length, "take", (b) => taken.push(b.bytes)), 0);
+		const msg2 = enc.encode("D".repeat(150));
+		assert.equal(ring.write(msg2, 0, msg2.length, "take", (b) => taken.push(b.bytes)), 0);
+		const tail = ring.take();
+		if (tail) taken.push(tail.bytes);
+		assert.equal(dec.decode(Buffer.concat(taken)), "A".repeat(60) + "B".repeat(60) + "C".repeat(60) + "D".repeat(150));
+		assert.equal(ring.dropped, 0);
+
+		// "post": up to MAX_BATCHES (16) batches are posted out of a full ring;
+		// the 17th waits STALL_MS (50 ms) for TAKEN to move, then drops, and
+		// later writes drop without waiting until batchTaken() is called.
+		const posted: Array<{ seq: number; bytes: Uint8Array }> = [];
+		const chunk = enc.encode("X".repeat(64));
+		let dropped = 0;
+		for (let i = 0; i < 100 && dropped === 0; i++) {
+			dropped = ring.write(chunk, 0, chunk.length, "post", (b) => posted.push(b));
+		}
+		assert.equal(posted.length, 16, "MAX_BATCHES posted before dropping");
+		assert.equal(dropped, 64);
+		assert.equal(ring.dropped, 64);
+		const t0 = performance.now();
+		assert.equal(ring.write(chunk, 0, chunk.length, "post", (b) => posted.push(b)), 64, "stalled writer drops at once without waiting again");
+		assert.ok(performance.now() - t0 < 25);
+		assert.equal(ring.dropped, 128);
+		ring.batchTaken();
+		for (let i = 0; i < 3; i++) {
+			assert.equal(ring.write(chunk, 0, chunk.length, "post", (b) => posted.push(b)), 0, "recovers once CPU 0 takes a batch");
+		}
+		ring.close();
+		assert.equal(ring.closed, true);
+		assert.equal(ring.write(chunk, 0, chunk.length, "take", () => {}), 64, "closed full ring drops writes");
+
+		// ConsoleOrder: out-of-order batches, flush() at exit, and a late batch that flush() skipped.
+		const ordered: string[] = [];
+		const ord = new ConsoleOrder((b) => ordered.push(dec.decode(b)));
+		ord.put(2, enc.encode("two"));
+		ord.put(0, enc.encode("zero"));
+		assert.deepEqual(ordered, ["zero"]);
+		assert.equal(ord.empty, false);
+		ord.put(1, enc.encode("one"));
+		assert.deepEqual(ordered, ["zero", "one", "two"]);
+		assert.equal(ord.empty, true);
+		ord.put(5, enc.encode("five"));
+		ord.put(4, enc.encode("four"));
+		ord.flush();
+		assert.deepEqual(ordered, ["zero", "one", "two", "four", "five"]);
+		ord.put(3, enc.encode("three-late"));
+		assert.deepEqual(ordered, ["zero", "one", "two", "four", "five", "three-late"]);
+	});
+
+	test("SMP: runCpu boundary errors (bad initFlag, missing entry, CPU-0 device import, trap, proc_exit) all raise the stop IPI on CPU 0", async () => {
+		const { runCpu } = await import("../js/core/cpu.ts");
+		const { newConsoleRing } = await import("../js/core/console-ring.ts");
+		const IPI_STOP = 1 << 26;
+		const enc = new TextEncoder();
+		const sec = (id: number, body: number[]) => [id, body.length, ...body];
+		const str = (s: string) => { const b = enc.encode(s); return [b.length, ...b]; };
+		const wasm = (...sections: number[][]) => new WebAssembly.Module(Uint8Array.from([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0, ...sections.flat()]));
+		const exports2 = (fnIdx: number) => sec(7, [2, ...str("ret_from_fork"), 0, fnIdx, ...str("kw_secondary_entry"), 0, fnIdx]);
+
+		const run = async (module: WebAssembly.Module, flagVal = 2) => {
+			const memory = new WebAssembly.Memory({ initial: 1, maximum: 1, shared: true });
+			const i32 = new Int32Array(memory.buffer);
+			Atomics.store(i32, 16 >> 2, flagVal);
+			const msgs: Array<{ t: string; msg?: string; error?: string; code?: number }> = [];
+			await runCpu({
+				cpu: 1, idle: 0n, module, memory, cpus: 2, initFlag: 16, irqWord0: 32,
+				epochMs: 0, jit: false, memory64: false, console: newConsoleRing(), consoleFull: "wait",
+			}, { post: (m) => msgs.push(m as never) });
+			await new Promise((r) => setTimeout(r, 20));
+			return { msgs, irq0: Atomics.load(i32, 32 >> 2) };
+		};
+
+		// 1. __wasm_init_memory_flag != 2: refuses before instantiating.
+		const rFlag = await run(wasm(), 0);
+		assert.ok(rFlag.msgs.some((m) => m.t === "fatal" && /data-segment flag/.test(m.msg ?? "")) && (rFlag.irq0 & IPI_STOP) !== 0);
+
+		// 2. Missing kw_secondary_entry export.
+		const rNoEntry = await run(wasm());
+		assert.ok(rNoEntry.msgs.some((m) => m.t === "fatal" && /no kw_secondary_entry/.test(m.msg ?? "")) && (rNoEntry.irq0 & IPI_STOP) !== 0);
+
+		// 3. Calling a CPU-0-only device import on CPU 1 -> fatal.
+		const modDev = wasm(
+			sec(1, [2, 0x60, 0, 0, 0x60, 1, 0x7e, 0]),
+			sec(2, [1, ...str("unkernel"), ...str("wasm_driver_fb_init"), 0, 0]),
+			sec(3, [1, 1]),
+			exports2(1),
+			sec(10, [1, 4, 0, 0x10, 0, 0x0b]),
+		);
+		const rDev = await run(modDev);
+		assert.ok(rDev.msgs.some((m) => m.t === "fatal" && /unkernel\.wasm_driver_fb_init/.test(m.msg ?? "")) && (rDev.irq0 & IPI_STOP) !== 0);
+
+		// 4. Wasm trap (unreachable) on CPU 1 -> trap.
+		const modTrap = wasm(sec(1, [1, 0x60, 1, 0x7e, 0]), sec(3, [1, 0]), exports2(0), sec(10, [1, 3, 0, 0x00, 0x0b]));
+		const rTrap = await run(modTrap);
+		assert.ok(rTrap.msgs.some((m) => m.t === "trap") && (rTrap.irq0 & IPI_STOP) !== 0);
+
+		// 5. proc_exit(2) on CPU 1 -> exit code 2.
+		const modExit = wasm(
+			sec(1, [2, 0x60, 1, 0x7f, 0, 0x60, 1, 0x7e, 0]),
+			sec(2, [1, ...str("wasi_snapshot_preview1"), ...str("proc_exit"), 0, 0]),
+			sec(3, [1, 1]),
+			exports2(1),
+			sec(10, [1, 6, 0, 0x41, 2, 0x10, 0, 0x0b]),
+		);
+		const rExit = await run(modExit);
+		assert.ok(rExit.msgs.some((m) => m.t === "exit" && m.code === 2) && (rExit.irq0 & IPI_STOP) !== 0);
+	});
+
+	test("SMP: cpus: 2 on a UP-only module falls back to 1 CPU; on the bundle boots 2 CPUs, rejects snapshot(), and a secondary CPU's poweroff or panic stops a spinning CPU 0",
+		{ skip: !kernelHasSmp && "the bundle under test has no SMP kernel" }, async (t) => {
+		// 1. A pre-compiled UP WebAssembly.Module ignores cpus: 2 with a log line and runs on 1 CPU.
+		if (!kernelIsSmp) {
+			const logs: string[] = [];
+			const up = await boot(t, { kernel: kernelModule, cpus: 2, vsock: false, log: (m) => logs.push(m) });
+			assert.equal(up.stats().cpus, 1);
+			assert.ok(logs.some((l) => /this kernel is not SMP: 2 CPUs asked/.test(l)), logs.join("\n"));
+			await up.stop({ reason: "test" });
+		}
+
+		// 2. Booting 2 CPUs from the bundle: snapshot() rejects, and a poweroff on CPU 1 while CPU 0 spins exits 0.
+		const vm = await boot(t, { worker: true, cpus: 2, vsock: false, log: () => {} });
+		const { waitFor } = screen(vm);
+		await waitFor(PROMPT);
+		assert.equal(vm.stats().cpus, 2);
+		await assert.rejects(vm.snapshot(), /cannot resume one/);
+		vm.write("for c in 0 1; do (while :; do read -r l < /proc/self/stat; set -- $l; [ \"${39}\" = 1 ] && poweroff -f; done) & done\n");
+		assert.deepEqual(await vm.exited.then((r) => [r.code, r.kind]), [0, "halt"]);
+
+		// 3. A panic on CPU 1 while CPU 0 spins in user mode: CPU 1 raises the stop IPI on CPU 0 and exits 253.
+		const kernelLines: string[] = [];
+		const router = new ConsoleRouter({ onKernelLine: (l) => kernelLines.push(l) });
+		const vm2 = await boot(t, { worker: true, cpus: 2, vsock: false, log: () => {}, onOutput: (b) => router.write(b) });
+		const s2 = screen(vm2);
+		await s2.waitFor(PROMPT);
+		vm2.write("for c in 0 1; do (while :; do read -r l < /proc/self/stat; set -- $l; [ \"${39}\" = 1 ] && echo c > /proc/sysrq-trigger; done) & done\n");
+		const res2 = await vm2.exited;
+		assert.deepEqual([res2.code, res2.kind], [253, "panic"]);
+		assert.ok(kernelLines.some((l) => /Kernel panic|sysrq: Trigger a crash/i.test(l)), kernelLines.slice(-10).join("\n"));
+	});
+
 });
 
 // Not with the others: it changes globalThis.crossOriginIsolated, which every worker-mode boot reads.
@@ -1748,4 +1907,35 @@ test("worker mode: messages where SharedArrayBuffer cannot be used (a page that 
 		delete g.crossOriginIsolated;
 	}
 	assert.equal(sdk.sharedMemoryAvailable(), true);
+});
+
+// Not with the others: temporarily removes Atomics.waitAsync to exercise ConsoleRingReader's 4 ms polling fallback.
+test("SMP: ConsoleRingReader falls back to 4 ms polling when Atomics.waitAsync is absent", async () => {
+	const { ConsoleRing, ConsoleRingReader, newConsoleRing } = await import("../js/core/console-ring.ts");
+	const a = Atomics as { waitAsync?: typeof Atomics.waitAsync };
+	const orig = a.waitAsync;
+	delete a.waitAsync;
+	try {
+		const ring = new ConsoleRing(newConsoleRing());
+		const dec = new TextDecoder(), enc = new TextEncoder();
+		let got = "";
+		const reader = new ConsoleRingReader(ring, (b) => { got += dec.decode(b.bytes); });
+		reader.start();
+		try {
+			const b1 = enc.encode("poll-1\n"), b2 = enc.encode("poll-2\n");
+			await new Promise((r) => setTimeout(r, 10));
+			ring.write(b1, 0, b1.length, "wait");
+			await new Promise((r) => setTimeout(r, 15));
+			ring.write(b2, 0, b2.length, "wait");
+			for (let i = 0; i < 30 && got !== "poll-1\npoll-2\n"; i++) {
+				await new Promise((r) => setTimeout(r, 5));
+			}
+			assert.equal(got, "poll-1\npoll-2\n");
+		} finally {
+			reader.stop();
+			ring.close();
+		}
+	} finally {
+		if (orig) a.waitAsync = orig;
+	}
 });

@@ -1,4 +1,4 @@
-From db2f9868a5f44c6d2eb39879aee6ac1da1030850 Mon Sep 17 00:00:00 2001
+From 39abb76ad15ba9613ad15e842d70e66d1b3da985 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: kwvsock, an AF_VSOCK transport to the JavaScript host
@@ -35,7 +35,7 @@ RX work is queued on system_percpu_wq (Linux 7.3 deprecates system_wq).
  create mode 100644 net/vmw_vsock/kwvsock.c
 
 diff --git a/net/vmw_vsock/Kconfig b/net/vmw_vsock/Kconfig
-index 8e803c4828c..3ffc8c8fe31 100644
+index 8e803c482..3ffc8c8fe 100644
 --- a/net/vmw_vsock/Kconfig
 +++ b/net/vmw_vsock/Kconfig
 @@ -38,6 +38,19 @@ config VSOCKETS_LOOPBACK
@@ -59,7 +59,7 @@ index 8e803c4828c..3ffc8c8fe31 100644
  	tristate "VMware VMCI transport for Virtual Sockets"
  	depends on VSOCKETS && VMWARE_VMCI
 diff --git a/net/vmw_vsock/Makefile b/net/vmw_vsock/Makefile
-index 5da74c4a9f1..e4b30762411 100644
+index 5da74c4a9..e4b307624 100644
 --- a/net/vmw_vsock/Makefile
 +++ b/net/vmw_vsock/Makefile
 @@ -6,6 +6,7 @@ obj-$(CONFIG_VIRTIO_VSOCKETS) += vmw_vsock_virtio_transport.o
@@ -72,7 +72,7 @@ index 5da74c4a9f1..e4b30762411 100644
  vsock-$(CONFIG_BPF_SYSCALL) += vsock_bpf.o
 diff --git a/net/vmw_vsock/kwvsock.c b/net/vmw_vsock/kwvsock.c
 new file mode 100644
-index 00000000000..fedbe869114
+index 000000000..fedbe8691
 --- /dev/null
 +++ b/net/vmw_vsock/kwvsock.c
 @@ -0,0 +1,293 @@

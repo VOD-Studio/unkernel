@@ -1,4 +1,4 @@
-From be7d5eb9e98eb01c6faa6e59b82e148c356e8ab1 Mon Sep 17 00:00:00 2001
+From 0d0685c16bd26b53a9b2708e531297c0c8f2b40a Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 23:07:54 +0000
 Subject: [PATCH] smp: let an arch wait for a csd and wake its waiter
@@ -22,7 +22,7 @@ is left as it is.
  1 file changed, 9 insertions(+)
 
 diff --git a/kernel/smp.c b/kernel/smp.c
-index b696bcc60c0..40093f2dde2 100644
+index b696bcc60..40093f2dd 100644
 --- a/kernel/smp.c
 +++ b/kernel/smp.c
 @@ -373,6 +373,11 @@ static void csd_lock_record(call_single_data_t *csd)

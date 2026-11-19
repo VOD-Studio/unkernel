@@ -1,4 +1,4 @@
-From 5cc346df367c28aee8b92da1d027cab81a572eb1 Mon Sep 17 00:00:00 2001
+From 7b9b1b53ab91196ef2fcd845006c8fe8eb741dc3 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:09 +0000
 Subject: [PATCH] wasm: kwnet, an Ethernet device backed by the JavaScript host
@@ -25,7 +25,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
  create mode 100644 drivers/net/kwnet.c
 
 diff --git a/drivers/net/Kconfig b/drivers/net/Kconfig
-index ff79c466712..d73c2c27dc6 100644
+index ff79c4667..d73c2c27d 100644
 --- a/drivers/net/Kconfig
 +++ b/drivers/net/Kconfig
 @@ -56,6 +56,14 @@ config BONDING
@@ -44,7 +44,7 @@ index ff79c466712..d73c2c27dc6 100644
  	tristate "Dummy net driver support"
  	help
 diff --git a/drivers/net/Makefile b/drivers/net/Makefile
-index 88e4c485d6b..b78b6e99cd3 100644
+index 88e4c485d..b78b6e99c 100644
 --- a/drivers/net/Makefile
 +++ b/drivers/net/Makefile
 @@ -10,6 +10,7 @@ obj-$(CONFIG_BONDING) += bonding/
@@ -57,7 +57,7 @@ index 88e4c485d6b..b78b6e99cd3 100644
  obj-$(CONFIG_EQUALIZER) += eql.o
 diff --git a/drivers/net/kwnet.c b/drivers/net/kwnet.c
 new file mode 100644
-index 00000000000..58d472e593d
+index 000000000..58d472e59
 --- /dev/null
 +++ b/drivers/net/kwnet.c
 @@ -0,0 +1,198 @@

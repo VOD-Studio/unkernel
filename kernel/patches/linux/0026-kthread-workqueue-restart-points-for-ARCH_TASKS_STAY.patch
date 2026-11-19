@@ -1,4 +1,4 @@
-From fb3766fec4943d289d3a87332ea25bb6db09bbcb Mon Sep 17 00:00:00 2001
+From e651b239fe0acd4d53cbd197eea0c433d7a06870 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:06:57 +0000
 Subject: [PATCH] kthread, workqueue: restart points for ARCH_TASKS_STAY_ON_CPU
@@ -33,7 +33,7 @@ Without ARCH_TASKS_STAY_ON_CPU the marks are empty.
  3 files changed, 105 insertions(+), 11 deletions(-)
 
 diff --git a/include/linux/kthread.h b/include/linux/kthread.h
-index a01a474719a..3d995d48a68 100644
+index a01a47471..3d995d48a 100644
 --- a/include/linux/kthread.h
 +++ b/include/linux/kthread.h
 @@ -7,6 +7,36 @@
@@ -74,7 +74,7 @@ index a01a474719a..3d995d48a68 100644
  struct kthread;
  
 diff --git a/kernel/kthread.c b/kernel/kthread.c
-index b7e17bab503..80a3d5544da 100644
+index b7e17bab5..80a3d5544 100644
 --- a/kernel/kthread.c
 +++ b/kernel/kthread.c
 @@ -257,7 +257,15 @@ void *kthread_probe_data(struct task_struct *task)
@@ -182,7 +182,7 @@ index b7e17bab503..80a3d5544da 100644
  	kthread_exit(ret);
  }
 diff --git a/kernel/workqueue.c b/kernel/workqueue.c
-index 27f5096829a..2933fcf40cf 100644
+index 27f509682..2933fcf40 100644
 --- a/kernel/workqueue.c
 +++ b/kernel/workqueue.c
 @@ -3575,7 +3575,14 @@ static int worker_thread(void *__worker)

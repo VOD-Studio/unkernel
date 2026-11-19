@@ -1,4 +1,4 @@
-From 3622bfe0473c6884910b61657e612d725ad5dd11 Mon Sep 17 00:00:00 2001
+From 88d929f1ea8a9c4fa1893f6cd5c981ed952f348c Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:06:57 +0000
 Subject: [PATCH] sched: let an arch hold tasks on their CPU except where they
@@ -49,7 +49,7 @@ it slept, and only then may move.
  5 files changed, 295 insertions(+), 5 deletions(-)
 
 diff --git a/include/linux/irq-entry-common.h b/include/linux/irq-entry-common.h
-index c74b5c87e10..291968435a6 100644
+index c74b5c87e..291968435 100644
 --- a/include/linux/irq-entry-common.h
 +++ b/include/linux/irq-entry-common.h
 @@ -129,6 +129,28 @@ static inline void arch_exit_to_user_mode_work(struct pt_regs *regs,
@@ -82,7 +82,7 @@ index c74b5c87e10..291968435a6 100644
   * arch_exit_to_user_mode_prepare - Architecture specific preparation for
   *				    exit to user mode.
 diff --git a/include/linux/sched.h b/include/linux/sched.h
-index 78bfc0e32e5..5de057dedc5 100644
+index 78bfc0e32..5de057ded 100644
 --- a/include/linux/sched.h
 +++ b/include/linux/sched.h
 @@ -1942,6 +1942,29 @@ extern int dl_task_check_affinity(struct task_struct *p, const struct cpumask *m
@@ -116,7 +116,7 @@ index 78bfc0e32e5..5de057dedc5 100644
  extern void set_user_nice(struct task_struct *p, long nice);
  extern int task_prio(const struct task_struct *p);
 diff --git a/init/Kconfig b/init/Kconfig
-index ad592fdf29a..dd317cfcab9 100644
+index ad592fdf2..dd317cfca 100644
 --- a/init/Kconfig
 +++ b/init/Kconfig
 @@ -967,6 +967,27 @@ config ARCH_HAS_PTE_PROTNONE
@@ -156,7 +156,7 @@ index ad592fdf29a..dd317cfcab9 100644
  	bool
  
 diff --git a/kernel/entry/common.c b/kernel/entry/common.c
-index e3d381fd3d2..ea0c89b36f8 100644
+index e3d381fd3..ea0c89b36 100644
 --- a/kernel/entry/common.c
 +++ b/kernel/entry/common.c
 @@ -52,7 +52,7 @@ static __always_inline unsigned long __exit_to_user_mode_loop(struct pt_regs *re
@@ -169,7 +169,7 @@ index e3d381fd3d2..ea0c89b36f8 100644
  
  		if (ti_work & _TIF_UPROBE)
 diff --git a/kernel/sched/core.c b/kernel/sched/core.c
-index 1754d9f95f2..66abbdb6a15 100644
+index 1754d9f95..66abbdb6a 100644
 --- a/kernel/sched/core.c
 +++ b/kernel/sched/core.c
 @@ -2660,8 +2660,12 @@ static int migration_cpu_stop(void *data)

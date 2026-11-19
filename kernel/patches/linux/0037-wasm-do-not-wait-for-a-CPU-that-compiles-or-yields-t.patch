@@ -1,4 +1,4 @@
-From 371503b2d4b61cff5db06f8f7c5cb9486f141cd4 Mon Sep 17 00:00:00 2001
+From 40dba7da45c089accc0a76596af39fc3006a056e Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Tue, 17 Nov 2026 14:38:17 +0000
 Subject: [PATCH] wasm: do not wait for a CPU that compiles or yields to its
@@ -36,7 +36,7 @@ mprotect() calls that shoot it down): p99.9 130 to 13 us, max 20 to
  4 files changed, 130 insertions(+), 27 deletions(-)
 
 diff --git a/arch/wasm/include/asm/kw_emu.h b/arch/wasm/include/asm/kw_emu.h
-index fe4eaee612d..3308c54e1fe 100644
+index fe4eaee61..3308c54e1 100644
 --- a/arch/wasm/include/asm/kw_emu.h
 +++ b/arch/wasm/include/asm/kw_emu.h
 @@ -44,6 +44,21 @@
@@ -100,7 +100,7 @@ index fe4eaee612d..3308c54e1fe 100644
   *     Restore the function the slot held before its first compile and drop
   *     the module.
 diff --git a/arch/wasm/include/asm/tlbflush.h b/arch/wasm/include/asm/tlbflush.h
-index c6369fd7ff4..6573bbd7f01 100644
+index c6369fd7f..6573bbd7f 100644
 --- a/arch/wasm/include/asm/tlbflush.h
 +++ b/arch/wasm/include/asm/tlbflush.h
 @@ -18,6 +18,13 @@ void flush_tlb_range(struct vm_area_struct *vma, unsigned long start,
@@ -118,7 +118,7 @@ index c6369fd7ff4..6573bbd7f01 100644
  					  unsigned long end)
  {
 diff --git a/arch/wasm/kernel/traps.c b/arch/wasm/kernel/traps.c
-index b439f07ef39..017d8284512 100644
+index b439f07ef..017d82845 100644
 --- a/arch/wasm/kernel/traps.c
 +++ b/arch/wasm/kernel/traps.c
 @@ -19,6 +19,7 @@
@@ -164,7 +164,7 @@ index b439f07ef39..017d8284512 100644
  
  void __noreturn user_mode_loop(struct pt_regs *regs)
 diff --git a/arch/wasm/mm/tlb.c b/arch/wasm/mm/tlb.c
-index f0d1a12c122..671411d43d2 100644
+index f0d1a12c1..671411d43 100644
 --- a/arch/wasm/mm/tlb.c
 +++ b/arch/wasm/mm/tlb.c
 @@ -12,7 +12,8 @@

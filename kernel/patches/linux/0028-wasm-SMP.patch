@@ -1,4 +1,4 @@
-From 0b87d2fdd7b271dc5f2576eac049195aec6103cc Mon Sep 17 00:00:00 2001
+From d77b3dd431aa87fabe2e9456d74759114c921cd6 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:07:10 +0000
 Subject: [PATCH] wasm: SMP
@@ -105,7 +105,7 @@ kw_emu.h follows kwemu's ABI 7 (several harts on one memory).
  create mode 100644 arch/wasm/kernel/smp.c
 
 diff --git a/arch/wasm/Kconfig b/arch/wasm/Kconfig
-index 1ed6743adce..4efdda2c2cc 100644
+index 1ed6743ad..4efdda2c2 100644
 --- a/arch/wasm/Kconfig
 +++ b/arch/wasm/Kconfig
 @@ -36,6 +36,9 @@ config WASM
@@ -160,7 +160,7 @@ index 1ed6743adce..4efdda2c2cc 100644
  
  config GENERIC_CSUM
 diff --git a/arch/wasm/Makefile b/arch/wasm/Makefile
-index 34e941e06b6..49049055794 100644
+index 34e941e06..490490557 100644
 --- a/arch/wasm/Makefile
 +++ b/arch/wasm/Makefile
 @@ -10,6 +10,11 @@ KCFLAGS += -march=wasm64
@@ -177,7 +177,7 @@ index 34e941e06b6..49049055794 100644
  # atomic.h, cmpxchg.h and barrier.h become real atomic instructions.
 diff --git a/arch/wasm/configs/kw_smp.config b/arch/wasm/configs/kw_smp.config
 new file mode 100644
-index 00000000000..69e9db0c132
+index 000000000..69e9db0c1
 --- /dev/null
 +++ b/arch/wasm/configs/kw_smp.config
 @@ -0,0 +1,4 @@
@@ -186,7 +186,7 @@ index 00000000000..69e9db0c132
 +CONFIG_SMP=y
 +CONFIG_NR_CPUS=8
 diff --git a/arch/wasm/include/asm/entry-common.h b/arch/wasm/include/asm/entry-common.h
-index 185b2ff8246..62bcda7eaf7 100644
+index 185b2ff82..62bcda7ea 100644
 --- a/arch/wasm/include/asm/entry-common.h
 +++ b/arch/wasm/include/asm/entry-common.h
 @@ -5,4 +5,36 @@
@@ -227,7 +227,7 @@ index 185b2ff8246..62bcda7eaf7 100644
 +
  #endif /* _ASM_WASM_ENTRY_COMMON_H */
 diff --git a/arch/wasm/include/asm/futex.h b/arch/wasm/include/asm/futex.h
-index 298606ab13a..295105b9d6b 100644
+index 298606ab1..295105b9d 100644
 --- a/arch/wasm/include/asm/futex.h
 +++ b/arch/wasm/include/asm/futex.h
 @@ -8,8 +8,13 @@
@@ -288,7 +288,7 @@ index 298606ab13a..295105b9d6b 100644
  	default:
  		return -ENOSYS;
 diff --git a/arch/wasm/include/asm/hwcap.h b/arch/wasm/include/asm/hwcap.h
-index f71640d38f5..e116408e5c1 100644
+index f71640d38..e116408e5 100644
 --- a/arch/wasm/include/asm/hwcap.h
 +++ b/arch/wasm/include/asm/hwcap.h
 @@ -21,6 +21,8 @@ struct kw_cpu;
@@ -301,7 +301,7 @@ index f71640d38f5..e116408e5c1 100644
  u64 kw_isa_hwprobe_ext1(void);
  #endif
 diff --git a/arch/wasm/include/asm/irq.h b/arch/wasm/include/asm/irq.h
-index 1632b41c353..19aedb5842e 100644
+index 1632b41c3..19aedb584 100644
 --- a/arch/wasm/include/asm/irq.h
 +++ b/arch/wasm/include/asm/irq.h
 @@ -15,15 +15,37 @@
@@ -343,7 +343,7 @@ index 1632b41c353..19aedb5842e 100644
  
  #endif /* _ASM_WASM_IRQ_H */
 diff --git a/arch/wasm/include/asm/irqflags.h b/arch/wasm/include/asm/irqflags.h
-index 93987ef653f..c69c2059a09 100644
+index 93987ef65..c69c2059a 100644
 --- a/arch/wasm/include/asm/irqflags.h
 +++ b/arch/wasm/include/asm/irqflags.h
 @@ -4,13 +4,15 @@
@@ -438,7 +438,7 @@ index 93987ef653f..c69c2059a09 100644
  #include <asm-generic/irqflags.h>
  
 diff --git a/arch/wasm/include/asm/kw_emu.h b/arch/wasm/include/asm/kw_emu.h
-index dbdb6b5547c..fe4eaee612d 100644
+index dbdb6b554..fe4eaee61 100644
 --- a/arch/wasm/include/asm/kw_emu.h
 +++ b/arch/wasm/include/asm/kw_emu.h
 @@ -35,6 +35,15 @@
@@ -468,7 +468,7 @@ index dbdb6b5547c..fe4eaee612d 100644
  	uint64_t x[32];   /* x[0] is ignored and reads as zero */
 diff --git a/arch/wasm/include/asm/kwcpu.h b/arch/wasm/include/asm/kwcpu.h
 new file mode 100644
-index 00000000000..f245df77cb8
+index 000000000..f245df77c
 --- /dev/null
 +++ b/arch/wasm/include/asm/kwcpu.h
 @@ -0,0 +1,23 @@
@@ -496,7 +496,7 @@ index 00000000000..f245df77cb8
 +
 +#endif /* _ASM_WASM_KWCPU_H */
 diff --git a/arch/wasm/include/asm/mmu_context.h b/arch/wasm/include/asm/mmu_context.h
-index 1cc64c5d496..b89ef7b6009 100644
+index 1cc64c5d4..b89ef7b60 100644
 --- a/arch/wasm/include/asm/mmu_context.h
 +++ b/arch/wasm/include/asm/mmu_context.h
 @@ -15,6 +15,11 @@ static inline void activate_mm(struct mm_struct *prev, struct mm_struct *next)
@@ -512,7 +512,7 @@ index 1cc64c5d496..b89ef7b6009 100644
  
  #define destroy_context destroy_context
 diff --git a/arch/wasm/include/asm/park.h b/arch/wasm/include/asm/park.h
-index 2aa5ffd70d1..55f55c238c3 100644
+index 2aa5ffd70..55f55c238 100644
 --- a/arch/wasm/include/asm/park.h
 +++ b/arch/wasm/include/asm/park.h
 @@ -13,6 +13,7 @@
@@ -546,7 +546,7 @@ index 2aa5ffd70d1..55f55c238c3 100644
  
  #endif /* _ASM_WASM_PARK_H */
 diff --git a/arch/wasm/include/asm/pgtable.h b/arch/wasm/include/asm/pgtable.h
-index 78f4b6ab5f4..841c27fd516 100644
+index 78f4b6ab5..841c27fd5 100644
 --- a/arch/wasm/include/asm/pgtable.h
 +++ b/arch/wasm/include/asm/pgtable.h
 @@ -348,6 +348,75 @@ void update_mmu_cache_range(struct vm_fault *vmf, struct vm_area_struct *vma,
@@ -634,7 +634,7 @@ index 78f4b6ab5f4..841c27fd516 100644
  /* --- swap entries (riscv layout) --------------------------------------- */
  /*
 diff --git a/arch/wasm/include/asm/processor.h b/arch/wasm/include/asm/processor.h
-index da9befa9706..67d9ec0deed 100644
+index da9befa97..67d9ec0de 100644
 --- a/arch/wasm/include/asm/processor.h
 +++ b/arch/wasm/include/asm/processor.h
 @@ -25,7 +25,17 @@
@@ -683,7 +683,7 @@ index da9befa9706..67d9ec0deed 100644
  #define INIT_THREAD { }
 diff --git a/arch/wasm/include/asm/smp.h b/arch/wasm/include/asm/smp.h
 new file mode 100644
-index 00000000000..8bda30c28a9
+index 000000000..8bda30c28
 --- /dev/null
 +++ b/arch/wasm/include/asm/smp.h
 @@ -0,0 +1,34 @@
@@ -722,7 +722,7 @@ index 00000000000..8bda30c28a9
 +
 +#endif /* _ASM_WASM_SMP_H */
 diff --git a/arch/wasm/include/asm/thread_info.h b/arch/wasm/include/asm/thread_info.h
-index aa4b53abe79..446dae41f88 100644
+index aa4b53abe..446dae41f 100644
 --- a/arch/wasm/include/asm/thread_info.h
 +++ b/arch/wasm/include/asm/thread_info.h
 @@ -38,5 +38,8 @@ struct thread_info {
@@ -735,7 +735,7 @@ index aa4b53abe79..446dae41f88 100644
  
  #endif /* _ASM_WASM_THREAD_INFO_H */
 diff --git a/arch/wasm/include/asm/time.h b/arch/wasm/include/asm/time.h
-index 9b5deac5ebd..3845ef11a34 100644
+index 9b5deac5e..3845ef11a 100644
 --- a/arch/wasm/include/asm/time.h
 +++ b/arch/wasm/include/asm/time.h
 @@ -3,7 +3,17 @@
@@ -757,7 +757,7 @@ index 9b5deac5ebd..3845ef11a34 100644
  
  #endif /* _ASM_WASM_TIME_H */
 diff --git a/arch/wasm/include/asm/tlbflush.h b/arch/wasm/include/asm/tlbflush.h
-index 4ce1d520697..c6369fd7ff4 100644
+index 4ce1d5206..c6369fd7f 100644
 --- a/arch/wasm/include/asm/tlbflush.h
 +++ b/arch/wasm/include/asm/tlbflush.h
 @@ -6,8 +6,8 @@
@@ -782,7 +782,7 @@ index 4ce1d520697..c6369fd7ff4 100644
  					  unsigned long end)
  {
 diff --git a/arch/wasm/include/asm/wasm.h b/arch/wasm/include/asm/wasm.h
-index f317d3f6710..139f3e96491 100644
+index f317d3f67..139f3e964 100644
 --- a/arch/wasm/include/asm/wasm.h
 +++ b/arch/wasm/include/asm/wasm.h
 @@ -85,6 +85,36 @@ struct task_struct *wasm_switch_to(struct task_struct *prev,
@@ -823,7 +823,7 @@ index f317d3f6710..139f3e96491 100644
  extern u32 wasm_host_irqs;
  
 diff --git a/arch/wasm/kernel/Makefile b/arch/wasm/kernel/Makefile
-index 9e24c876077..1f9d572be1b 100644
+index 9e24c8760..1f9d572be 100644
 --- a/arch/wasm/kernel/Makefile
 +++ b/arch/wasm/kernel/Makefile
 @@ -7,12 +7,13 @@ obj-y += entry.o
@@ -842,7 +842,7 @@ index 9e24c876077..1f9d572be1b 100644
  obj-y += sync.o
  obj-y += sys_riscv.o
 diff --git a/arch/wasm/kernel/cpu.c b/arch/wasm/kernel/cpu.c
-index d5bb65ac3fc..f81622e213d 100644
+index d5bb65ac3..f81622e21 100644
 --- a/arch/wasm/kernel/cpu.c
 +++ b/arch/wasm/kernel/cpu.c
 @@ -93,6 +93,12 @@ static u64 kw_isa_want __initdata = ~0ULL;
@@ -867,7 +867,7 @@ index d5bb65ac3fc..f81622e213d 100644
  	p += scnprintf(p, end - p, "rv64imafdc");
  	kw_isa_ext0 = RISCV_HWPROBE_IMA_FD | RISCV_HWPROBE_IMA_C;
 diff --git a/arch/wasm/kernel/entry.S b/arch/wasm/kernel/entry.S
-index b1f3e265fcb..9d2b7aeb433 100644
+index b1f3e265f..9d2b7aeb4 100644
 --- a/arch/wasm/kernel/entry.S
 +++ b/arch/wasm/kernel/entry.S
 @@ -12,6 +12,18 @@
@@ -934,7 +934,7 @@ index b1f3e265fcb..9d2b7aeb433 100644
  /*
   * ret_from_fork(prev, next): entry point of every new task, called by the
 diff --git a/arch/wasm/kernel/head.S b/arch/wasm/kernel/head.S
-index 6f84fb37fba..254440d9c0f 100644
+index 6f84fb37f..254440d9c 100644
 --- a/arch/wasm/kernel/head.S
 +++ b/arch/wasm/kernel/head.S
 @@ -7,6 +7,10 @@
@@ -961,7 +961,7 @@ index 6f84fb37fba..254440d9c0f 100644
  	iLONG.const CONFIG_KERNEL_START
  	iLONG.store 0
 diff --git a/arch/wasm/kernel/irq.c b/arch/wasm/kernel/irq.c
-index fa7551ee9e9..1f2055d28c0 100644
+index fa7551ee9..1f2055d28 100644
 --- a/arch/wasm/kernel/irq.c
 +++ b/arch/wasm/kernel/irq.c
 @@ -1,8 +1,11 @@
@@ -1141,7 +1141,7 @@ index fa7551ee9e9..1f2055d28c0 100644
 +EXPORT_SYMBOL(kw_cpu_relax);
 +#endif
 diff --git a/arch/wasm/kernel/irqflags.c b/arch/wasm/kernel/irqflags.c
-index 0cedd2cd63b..2cce4b92bde 100644
+index 0cedd2cd6..2cce4b92b 100644
 --- a/arch/wasm/kernel/irqflags.c
 +++ b/arch/wasm/kernel/irqflags.c
 @@ -3,6 +3,8 @@
@@ -1155,7 +1155,7 @@ index 0cedd2cd63b..2cce4b92bde 100644
  EXPORT_SYMBOL(wasm_irq_flags);
 +#endif
 diff --git a/arch/wasm/kernel/park.c b/arch/wasm/kernel/park.c
-index c5986eabefd..be30d4df89c 100644
+index c5986eabe..be30d4df8 100644
 --- a/arch/wasm/kernel/park.c
 +++ b/arch/wasm/kernel/park.c
 @@ -85,6 +85,7 @@
@@ -1176,7 +1176,7 @@ index c5986eabefd..be30d4df89c 100644
  
  static BLOCKING_NOTIFIER_HEAD(kw_park_restore_chain);
 diff --git a/arch/wasm/kernel/process.c b/arch/wasm/kernel/process.c
-index 3cad124e5cb..05622e66df2 100644
+index 3cad124e5..05622e66d 100644
 --- a/arch/wasm/kernel/process.c
 +++ b/arch/wasm/kernel/process.c
 @@ -10,29 +10,180 @@
@@ -1570,7 +1570,7 @@ index 3cad124e5cb..05622e66df2 100644
  	return 0;
  }
 diff --git a/arch/wasm/kernel/setup.c b/arch/wasm/kernel/setup.c
-index bcd73515a90..6b58421e047 100644
+index bcd73515a..6b58421e0 100644
 --- a/arch/wasm/kernel/setup.c
 +++ b/arch/wasm/kernel/setup.c
 @@ -9,6 +9,7 @@
@@ -1607,7 +1607,7 @@ index bcd73515a90..6b58421e047 100644
 +	kw_smp_init_cpus();
  }
 diff --git a/arch/wasm/kernel/signal.c b/arch/wasm/kernel/signal.c
-index 3eceaadeb6e..5df45d42d6e 100644
+index 3eceaadeb..5df45d42d 100644
 --- a/arch/wasm/kernel/signal.c
 +++ b/arch/wasm/kernel/signal.c
 @@ -18,8 +18,7 @@
@@ -1622,7 +1622,7 @@ index 3eceaadeb6e..5df45d42d6e 100644
  	struct siginfo info;
 diff --git a/arch/wasm/kernel/smp.c b/arch/wasm/kernel/smp.c
 new file mode 100644
-index 00000000000..e48cf0a45bb
+index 000000000..e48cf0a45
 --- /dev/null
 +++ b/arch/wasm/kernel/smp.c
 @@ -0,0 +1,174 @@
@@ -1801,7 +1801,7 @@ index 00000000000..e48cf0a45bb
 +			cpumask_pr_args(cpu_online_mask));
 +}
 diff --git a/arch/wasm/kernel/sys_riscv.c b/arch/wasm/kernel/sys_riscv.c
-index 5ac30437666..775eae39dbe 100644
+index 5ac304376..775eae39d 100644
 --- a/arch/wasm/kernel/sys_riscv.c
 +++ b/arch/wasm/kernel/sys_riscv.c
 @@ -7,9 +7,7 @@
@@ -1825,7 +1825,7 @@ index 5ac30437666..775eae39dbe 100644
  }
  
 diff --git a/arch/wasm/kernel/time.c b/arch/wasm/kernel/time.c
-index 52a4707efc1..dc8e6f8c3e4 100644
+index 52a4707ef..dc8e6f8c3 100644
 --- a/arch/wasm/kernel/time.c
 +++ b/arch/wasm/kernel/time.c
 @@ -10,7 +10,11 @@
@@ -1909,7 +1909,7 @@ index 52a4707efc1..dc8e6f8c3e4 100644
  }
 +#endif
 diff --git a/arch/wasm/kernel/traps.c b/arch/wasm/kernel/traps.c
-index f1deec5f5b3..b439f07ef39 100644
+index f1deec5f5..b439f07ef 100644
 --- a/arch/wasm/kernel/traps.c
 +++ b/arch/wasm/kernel/traps.c
 @@ -16,12 +16,11 @@
@@ -1973,7 +1973,7 @@ index f1deec5f5b3..b439f07ef39 100644
  		local_irq_disable();
  
 diff --git a/arch/wasm/kernel/wasi.c b/arch/wasm/kernel/wasi.c
-index f96cf96b2cf..62c43ddb405 100644
+index f96cf96b2..62c43ddb4 100644
 --- a/arch/wasm/kernel/wasi.c
 +++ b/arch/wasm/kernel/wasi.c
 @@ -4,12 +4,13 @@
@@ -2056,7 +2056,7 @@ index f96cf96b2cf..62c43ddb405 100644
  	if (wasi_stdin_ready())
  		wasi_raise_console_irq();
 diff --git a/arch/wasm/mm/fault.c b/arch/wasm/mm/fault.c
-index 553d1c3e541..959f2396685 100644
+index 553d1c3e5..959f23966 100644
 --- a/arch/wasm/mm/fault.c
 +++ b/arch/wasm/mm/fault.c
 @@ -16,25 +16,31 @@
@@ -2179,7 +2179,7 @@ index 553d1c3e541..959f2396685 100644
  						   (addr & PAGE_MASK) + PAGE_SIZE);
  			}
 diff --git a/arch/wasm/mm/tlb.c b/arch/wasm/mm/tlb.c
-index d4509d6b89e..f0d1a12c122 100644
+index d4509d6b8..f0d1a12c1 100644
 --- a/arch/wasm/mm/tlb.c
 +++ b/arch/wasm/mm/tlb.c
 @@ -1,23 +1,45 @@

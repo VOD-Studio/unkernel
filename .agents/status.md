@@ -425,11 +425,10 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
    - Parking and snapshots: deferred (decided 2026-11-17). They stay
      UP only (`KW_PARK` depends on `!SMP`; kernel.md, Parking lists what
      they would need), and the page hides Suspend with several CPUs.
-   - Console ring (js.md, CPU threads), paths that never ran: the
-     reader's 4 ms polling where the main thread has no
-     `Atomics.waitAsync`, the drop path in a real guest (stress test
-     only), CPU 0 stuck inside the kernel. A single write over 64 KiB
-     is split into records that another CPU's write can land between.
+   - Console ring (js.md, CPU threads): a single write over 64 KiB
+     is split into records that another CPU's write can land between,
+     and the drop path when CPU 0 is stuck inside the kernel is tested
+     only in unit tests.
    - No browser test in `web/test/` covers the CPUs option.
    - JIT on SMP, what is left: TLB flushes no longer wait for a CPU
      that compiles or yields to its host (kwemu.md, JIT on several
@@ -450,14 +449,6 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
      say, 1 ms could take a ticket; nothing measured needs it), and
      nothing switches `kw_spin_unfair=` by itself. Bare `cpu_relax()`
      loops (seqcount retries) do not take the timer.
-   - Aligned `get_user()` and `put_user()` copy through `memcpy` (wasm
-     `memory.copy`), which the wasm spec does not make single-copy
-     atomic on a shared memory, unlike riscv's loads and stores: a
-     futex word read beside user stores on another CPU could tear.
-     None seen (2026-11-17: 7.8 million `FUTEX_WAIT` reads of a word
-     another CPU flips between 0 and ~0, 2 CPUs), and the futex paths
-     retry on an unexpected value. Scalar `__get_user_fn` and
-     `__put_user_fn` for aligned 1, 2, 4 and 8 bytes would make it so.
    - Browsers (2026-11-17; js.md, CPU threads; web.md, Several CPUs):
      `js/web/cpu.ts` starts each CPU as a Web Worker, nested in worker
      mode's kernel worker (CPU 0 must be able to block, so not on a
@@ -575,9 +566,6 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
   (`kernel/guest/bwrap-shim.sh`) drops the seccomp arguments. The fix is
   seccomp in the arch (a syscall entry hook and the `asm/syscall.h`
   helpers); remove the shim then.
-- **kwfb: mmap racing a mode change.** An `mmap` of `/dev/fb0` racing a
-  mode change from another thread of the same program can map the old
-  buffer (found 2026-11-16, on UP too). Not fixed.
 - **One long syscall delays the host.** Every syscall and page fault
   costs 1000 instructions of the 200k slice, so kernel-bound
   loops end slices, but a single syscall that stays in the kernel for long

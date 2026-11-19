@@ -1,4 +1,4 @@
-From 355735b3fa085f31116088b053f3e7966a85e352 Mon Sep 17 00:00:00 2001
+From a7c8b289fb6770ba5913fe2e0b3b2c9289a0e545 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:09 +0000
 Subject: [PATCH] wasm: advertise the riscv ISA of kwemu and answer
@@ -44,7 +44,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
 
 diff --git a/arch/wasm/include/asm/hwcap.h b/arch/wasm/include/asm/hwcap.h
 new file mode 100644
-index 00000000000..f71640d38f5
+index 000000000..f71640d38
 --- /dev/null
 +++ b/arch/wasm/include/asm/hwcap.h
 @@ -0,0 +1,28 @@
@@ -78,7 +78,7 @@ index 00000000000..f71640d38f5
 +#endif /* _ASM_WASM_HWCAP_H */
 diff --git a/arch/wasm/include/uapi/asm/hwprobe.h b/arch/wasm/include/uapi/asm/hwprobe.h
 new file mode 100644
-index 00000000000..e6a394fbe7f
+index 000000000..e6a394fbe
 --- /dev/null
 +++ b/arch/wasm/include/uapi/asm/hwprobe.h
 @@ -0,0 +1,131 @@
@@ -215,7 +215,7 @@ index 00000000000..e6a394fbe7f
 +#endif
 diff --git a/arch/wasm/kernel/cpu.c b/arch/wasm/kernel/cpu.c
 new file mode 100644
-index 00000000000..d5bb65ac3fc
+index 000000000..d5bb65ac3
 --- /dev/null
 +++ b/arch/wasm/kernel/cpu.c
 @@ -0,0 +1,221 @@
@@ -442,7 +442,7 @@ index 00000000000..d5bb65ac3fc
 +#endif /* CONFIG_PROC_FS */
 diff --git a/arch/wasm/kernel/sys_riscv.c b/arch/wasm/kernel/sys_riscv.c
 new file mode 100644
-index 00000000000..5ac30437666
+index 000000000..5ac304376
 --- /dev/null
 +++ b/arch/wasm/kernel/sys_riscv.c
 @@ -0,0 +1,115 @@

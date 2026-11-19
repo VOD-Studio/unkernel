@@ -148,8 +148,11 @@ patch re-export.
   fails (nothing in this config hits that). There is no `VMAP_STACK` and no
   stack guard, and per-cpu memory uses `percpu-km`.
 - uaccess (`copy_{to,from}_user`, `clear_user`, futex ops) walks the user
-  page tables in software and faults pages in. `get_user`/`put_user` and
-  `strn*_user` are the generic ones on top of that. As a hardware MMU
+  page tables in software and faults pages in. `get_user`/`put_user` do a
+  single scalar load or store for aligned 1-, 2-, 4- and 8-byte addresses
+  (single-copy atomic on a shared memory, unlike `memcpy`'s `memory.copy`)
+  and fall back to `raw_copy_{from,to}_user` when unaligned; `strn*_user`
+  are the generic ones on top of that. As a hardware MMU
   retries the access, `kw_user_addr()` walks again for as long as the
   fault succeeds (another thread may take the page away in between: a
   zap, a fork's COW write-protect); a real fault error, a fatal signal
@@ -1061,13 +1064,17 @@ dependencies are not met silently; both configs pass as of 2026-11-17).
     `/dev/fb0` fails with EBUSY while the first is open, while a forked
     child still holds the file after the parent closed it, and while a
     mapping outlives `close()`; it opens again after the child's exit and
-    after `munmap`.
+    after `munmap`; `mmap` racing `FBIOPUT_VSCREENINFO` mode changes from
+    another thread never maps a stale buffer and blocks mode changes while
+    mapped.
   - `uaccess:` (every build): `read()` from a pipe into a userfaultfd
     page whose handler signals the reader before it supplies the page
     must return the data (a non-fatal signal neither ends the fault's
     wait nor fails the retried access); `FUTEX_WAKE_OP`'s add beside an
     amoadd loop on the same word, on another CPU when there is one, must
-    lose no increment. `kwtest smp` runs it too.
+    lose no increment; aligned `get_user`/`put_user` (`FUTEX_WAIT` and
+    `getcpu` beside another CPU's stores) never tear, and an unaligned
+    `getcpu` across a page boundary works. `kwtest smp` runs it too.
   - `config:` checks the options below, and `input handlers` that no
     input handler besides evdev and sysrq is registered.
   - `smp:` (more than one CPU online; skipped otherwise): three threads,
@@ -1088,7 +1095,12 @@ dependencies are not met silently; both configs pass as of 2026-11-17).
     pinned there keeps busy, woken 60 times from CPU 1 must leave CPU 0
     for good within its first 40 wakeups, every `read()` returning its
     value; of 5 children that exec beside that busy thread, at least 4
-    must start their new image on another CPU; `/proc/kwmove` must show
+    must start their new image on another CPU; a thread asleep in
+    `read()` that is moved to another CPU and woken by a `SA_RESTART`
+    signal delivers the handler on the new CPU and restarts `read()`
+    there without EINTR; a held kthread (`kthreadd`) refuses an affinity
+    change with EBUSY, and flipping `kw_spin_unfair` under multi-CPU
+    spinlock contention works; `/proc/kwmove` must show
     moves and no lost drops.
   - `jit:` (more than one CPU online; skipped otherwise; compiled code on
     several CPUs, kwemu.md, JIT on several harts): `hot()` and `fphot()`
@@ -1105,9 +1117,11 @@ dependencies are not met silently; both configs pass as of 2026-11-17).
     non-executable 10 times by `mprotect()`: once the writer has
     published a version, CPU 1 must never run an older one, never run
     the code while it is not executable (it must fault), and never
-    crash.
+    crash; lazy-TLB invalidation across an idle CPU 1 (`mremap` of data
+    and compiled code and `mprotect` to read-only on CPU 0 while CPU 1
+    idles in lazy TLB mode, then moving back to CPU 1).
     `kwtest smp` (as `rdinit=/usr/bin/kwtest -- smp`) runs only
-    `uaccess:`, `smp:`, `move:` and `jit:`.
+    `uaccess:`, `kwfb:`, `smp:`, `move:` and `jit:`.
 - kwbench (`rdinit=/usr/bin/kwbench`, add `--stats` for the JIT counters)
   gives rough guest speed.
 - `node test/wasi-node.ts`: the WASI side under `node:wasi` (no JIT).

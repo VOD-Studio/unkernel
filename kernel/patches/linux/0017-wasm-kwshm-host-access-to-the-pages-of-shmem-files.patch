@@ -1,4 +1,4 @@
-From d64567055b66ce7b22326f7d6e34edd3b98ae8f4 Mon Sep 17 00:00:00 2001
+From 20341deaf9591d922719a7ef7c6fd2e00b5e1a7f Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: kwshm, host access to the pages of shmem files
@@ -42,7 +42,7 @@ wasm_driver_shm_detach(id) and wasm_driver_shm_reply(tag, result).
  create mode 100644 include/uapi/linux/kwshm.h
 
 diff --git a/Documentation/userspace-api/ioctl/ioctl-number.rst b/Documentation/userspace-api/ioctl/ioctl-number.rst
-index 2fc53093752..764be4a19d3 100644
+index 2fc530937..764be4a19 100644
 --- a/Documentation/userspace-api/ioctl/ioctl-number.rst
 +++ b/Documentation/userspace-api/ioctl/ioctl-number.rst
 @@ -386,6 +386,7 @@ Code  Seq#    Include File                                             Comments
@@ -54,7 +54,7 @@ index 2fc53093752..764be4a19d3 100644
  0xCA  00-0F  uapi/misc/cxl.h                                           Dead since 6.15
  0xCA  10-2F  uapi/misc/ocxl.h
 diff --git a/drivers/misc/Kconfig b/drivers/misc/Kconfig
-index 7364931dad3..e3607680b67 100644
+index 7364931da..e3607680b 100644
 --- a/drivers/misc/Kconfig
 +++ b/drivers/misc/Kconfig
 @@ -581,6 +581,17 @@ source "drivers/misc/bcm-vk/Kconfig"
@@ -76,7 +76,7 @@ index 7364931dad3..e3607680b67 100644
  source "drivers/misc/keba/Kconfig"
  source "drivers/misc/amd-sbi/Kconfig"
 diff --git a/drivers/misc/Makefile b/drivers/misc/Makefile
-index e8d8d5d88c0..e6ba645d2dd 100644
+index e8d8d5d88..e6ba645d2 100644
 --- a/drivers/misc/Makefile
 +++ b/drivers/misc/Makefile
 @@ -71,3 +71,4 @@ obj-y				+= keba/
@@ -86,7 +86,7 @@ index e8d8d5d88c0..e6ba645d2dd 100644
 +obj-$(CONFIG_KWSHM)		+= kwshm.o
 diff --git a/drivers/misc/kwshm.c b/drivers/misc/kwshm.c
 new file mode 100644
-index 00000000000..50ae019a0e9
+index 000000000..50ae019a0
 --- /dev/null
 +++ b/drivers/misc/kwshm.c
 @@ -0,0 +1,648 @@
@@ -740,7 +740,7 @@ index 00000000000..50ae019a0e9
 +device_initcall(kwshm_init);
 diff --git a/include/uapi/linux/kwshm.h b/include/uapi/linux/kwshm.h
 new file mode 100644
-index 00000000000..d60f346def9
+index 000000000..d60f346de
 --- /dev/null
 +++ b/include/uapi/linux/kwshm.h
 @@ -0,0 +1,44 @@

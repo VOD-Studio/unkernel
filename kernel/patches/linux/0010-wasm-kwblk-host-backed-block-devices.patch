@@ -1,4 +1,4 @@
-From 48a2ea9e571521370786f54ef1ef48231406d5cc Mon Sep 17 00:00:00 2001
+From 637b2eb3ab0dad87546b416eab14a69f6bfc5c84 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:09 +0000
 Subject: [PATCH] wasm: kwblk, host-backed block devices
@@ -28,7 +28,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
  create mode 100644 drivers/block/kwblk.c
 
 diff --git a/drivers/block/Kconfig b/drivers/block/Kconfig
-index 858320b6ebb..bd25258aee4 100644
+index 858320b6e..bd25258ae 100644
 --- a/drivers/block/Kconfig
 +++ b/drivers/block/Kconfig
 @@ -220,6 +220,15 @@ config BLK_DEV_NBD
@@ -48,7 +48,7 @@ index 858320b6ebb..bd25258aee4 100644
  	tristate "RAM block device support"
  	help
 diff --git a/drivers/block/Makefile b/drivers/block/Makefile
-index 2d8096eb8cd..64401047512 100644
+index 2d8096eb8..644010475 100644
 --- a/drivers/block/Makefile
 +++ b/drivers/block/Makefile
 @@ -19,6 +19,7 @@ obj-$(CONFIG_ATARI_FLOPPY)	+= ataflop.o
@@ -61,7 +61,7 @@ index 2d8096eb8cd..64401047512 100644
  
 diff --git a/drivers/block/kwblk.c b/drivers/block/kwblk.c
 new file mode 100644
-index 00000000000..9a0591e9b6c
+index 000000000..9a0591e9b
 --- /dev/null
 +++ b/drivers/block/kwblk.c
 @@ -0,0 +1,275 @@

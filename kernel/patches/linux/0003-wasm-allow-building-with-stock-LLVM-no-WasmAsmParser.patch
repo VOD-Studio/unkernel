@@ -1,4 +1,4 @@
-From 2e2eff5f551ae041f5a0996027828a7f3d982fc3 Mon Sep 17 00:00:00 2001
+From 42b9693c894c20f41e91edcc100e9f1aa98fd304 Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:08 +0000
 Subject: [PATCH] wasm: allow building with stock LLVM (no WasmAsmParser
@@ -15,7 +15,7 @@ Signed-off-by: Pooya Parsa <pooya@pi0.io>
  2 files changed, 15 insertions(+), 1 deletion(-)
 
 diff --git a/include/linux/export.h b/include/linux/export.h
-index a686fd0ba40..3337c686fe0 100644
+index a686fd0ba..3337c686f 100644
 --- a/include/linux/export.h
 +++ b/include/linux/export.h
 @@ -38,7 +38,8 @@
@@ -29,7 +29,7 @@ index a686fd0ba40..3337c686fe0 100644
  /*
   * Allow symbol exports to be disabled completely so that C code may
 diff --git a/usr/initramfs_data.S b/usr/initramfs_data.S
-index e92fb59b3fb..5f3d83affed 100644
+index e92fb59b3..5f3d83aff 100644
 --- a/usr/initramfs_data.S
 +++ b/usr/initramfs_data.S
 @@ -22,11 +22,21 @@

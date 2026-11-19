@@ -1,4 +1,4 @@
-From ec8de2c64e689a3823090510d0187a82d5f69320 Mon Sep 17 00:00:00 2001
+From 8591a15c1dfae378609ef4e89004a5f6a8706394 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 20:16:03 +0000
 Subject: [PATCH] wasm: kwfb on SMP
@@ -12,7 +12,7 @@ as on UP while it runs. The UP build is unchanged.
  1 file changed, 44 insertions(+), 8 deletions(-)
 
 diff --git a/drivers/video/fbdev/kwfb.c b/drivers/video/fbdev/kwfb.c
-index f66e8273752..233cf91522c 100644
+index 375836056..88edf9ec2 100644
 --- a/drivers/video/fbdev/kwfb.c
 +++ b/drivers/video/fbdev/kwfb.c
 @@ -41,6 +41,11 @@
@@ -91,7 +91,7 @@ index f66e8273752..233cf91522c 100644
  	w = mode ? mode >> 16 : KWFB_DEF_W;
  	h = mode ? mode & 0xffff : KWFB_DEF_H;
  	kwfb_fit(&w, &h);
-@@ -300,11 +341,6 @@ static int __init kwfb_init(void)
+@@ -317,11 +358,6 @@ static int __init kwfb_init(void)
  		pr_info("kwfb: no host display\n");
  		return 0;
  	}

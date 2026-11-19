@@ -1,4 +1,4 @@
-From d82e54e91102cf76a6f79a3c3ccaf70b529f5c48 Mon Sep 17 00:00:00 2001
+From d1b42f5e56ec689fdf94d7720ca95c6a153aea6c Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 20:16:04 +0000
 Subject: [PATCH] wasm: kwinput on SMP
@@ -13,7 +13,7 @@ readers on any CPU. The UP build is unchanged.
  1 file changed, 36 insertions(+), 5 deletions(-)
 
 diff --git a/drivers/input/kwinput.c b/drivers/input/kwinput.c
-index 9c47827a339..39d2d9ca487 100644
+index 9c47827a3..39d2d9ca4 100644
 --- a/drivers/input/kwinput.c
 +++ b/drivers/input/kwinput.c
 @@ -27,6 +27,12 @@

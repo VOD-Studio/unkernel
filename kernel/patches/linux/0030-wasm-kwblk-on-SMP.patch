@@ -1,4 +1,4 @@
-From a8c38ff2d05142858c3a7044b869a0aa7b4f0fec Mon Sep 17 00:00:00 2001
+From faa2271e95363499534f30b6609e4518eb5ae601 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 20:16:02 +0000
 Subject: [PATCH] wasm: kwblk on SMP
@@ -16,7 +16,7 @@ wherever it sleeps. The UP build is unchanged.
  1 file changed, 72 insertions(+), 13 deletions(-)
 
 diff --git a/drivers/block/kwblk.c b/drivers/block/kwblk.c
-index 0b7ca9a6682..33e84984526 100644
+index 0b7ca9a66..33e849845 100644
 --- a/drivers/block/kwblk.c
 +++ b/drivers/block/kwblk.c
 @@ -22,6 +22,16 @@

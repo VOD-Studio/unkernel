@@ -1,4 +1,4 @@
-From 0074505ac5c0c542539bfa63f9af60127692147a Mon Sep 17 00:00:00 2001
+From dbe2bbe242453e7ad7cd8719d18f88d734f98fce Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 14:06:30 +0000
 Subject: [PATCH] random: let arch/wasm reseed when it resumes a snapshot
@@ -14,7 +14,7 @@ it, and the vmfork notifier chain, with CONFIG_KW_PARK as well.
  2 files changed, 3 insertions(+), 2 deletions(-)
 
 diff --git a/drivers/char/random.c b/drivers/char/random.c
-index b4da1fb976c..8e7ef9a9b7c 100644
+index b4da1fb97..8e7ef9a9b 100644
 --- a/drivers/char/random.c
 +++ b/drivers/char/random.c
 @@ -967,7 +967,8 @@ void __init add_bootloader_randomness(const void *buf, size_t len)
@@ -28,7 +28,7 @@ index b4da1fb976c..8e7ef9a9b7c 100644
  
  /*
 diff --git a/include/linux/random.h b/include/linux/random.h
-index 8a8064dc397..2ebe80829bd 100644
+index 8a8064dc3..2ebe80829 100644
 --- a/include/linux/random.h
 +++ b/include/linux/random.h
 @@ -27,7 +27,7 @@ static inline void add_latent_entropy(void)

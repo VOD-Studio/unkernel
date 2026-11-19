@@ -1,4 +1,4 @@
-From 36d4dc7b581a5eeba511ed673adfb60d7b6f4e8c Mon Sep 17 00:00:00 2001
+From 926fd9fe27f7cd3eb9280a2970f96c62078be0ff Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 20:16:03 +0000
 Subject: [PATCH] wasm: kwshm on SMP
@@ -19,7 +19,7 @@ the call does not take. The UP build is unchanged.
  3 files changed, 75 insertions(+), 10 deletions(-)
 
 diff --git a/arch/wasm/include/asm/wasm.h b/arch/wasm/include/asm/wasm.h
-index 139f3e96491..9238a99bc2e 100644
+index 139f3e964..9238a99bc 100644
 --- a/arch/wasm/include/asm/wasm.h
 +++ b/arch/wasm/include/asm/wasm.h
 @@ -113,6 +113,15 @@ int wasm_cpu_start(int cpu, struct task_struct *idle)
@@ -39,7 +39,7 @@ index 139f3e96491..9238a99bc2e 100644
  
  /* Bits set by the host in wasm_host_irqs (see irq.h). */
 diff --git a/arch/wasm/kernel/smp.c b/arch/wasm/kernel/smp.c
-index e48cf0a45bb..dd3ea4d9238 100644
+index e48cf0a45..dd3ea4d92 100644
 --- a/arch/wasm/kernel/smp.c
 +++ b/arch/wasm/kernel/smp.c
 @@ -24,6 +24,7 @@
@@ -67,7 +67,7 @@ index e48cf0a45bb..dd3ea4d9238 100644
  {
  	unsigned long timeout = USEC_PER_SEC;
 diff --git a/drivers/misc/kwshm.c b/drivers/misc/kwshm.c
-index f1bf8b7cadc..d4ff2013bca 100644
+index f1bf8b7ca..d4ff2013b 100644
 --- a/drivers/misc/kwshm.c
 +++ b/drivers/misc/kwshm.c
 @@ -44,6 +44,12 @@

@@ -1,4 +1,4 @@
-From d2e65c7da965e881448ed1b3656116406683eb6a Mon Sep 17 00:00:00 2001
+From 2ef28b899550c6396eae738b38269ebfeba21b4a Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 16:06:57 +0000
 Subject: [PATCH] mm: allow percpu-km on SMP with a flat vmalloc
@@ -13,7 +13,7 @@ has. Let such an SMP architecture use it.
  1 file changed, 4 insertions(+), 2 deletions(-)
 
 diff --git a/mm/Kconfig b/mm/Kconfig
-index 68ba95db79b..cbd89fd5289 100644
+index 68ba95db7..cbd89fd52 100644
 --- a/mm/Kconfig
 +++ b/mm/Kconfig
 @@ -1041,10 +1041,12 @@ config VMALLOC_FLAT

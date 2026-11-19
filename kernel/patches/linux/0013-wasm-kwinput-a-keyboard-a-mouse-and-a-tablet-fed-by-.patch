@@ -1,4 +1,4 @@
-From 1d204cc65870cb01090e194d803913df4d30556b Mon Sep 17 00:00:00 2001
+From f322a2a792a0268464f1a92070894c3b3f3a49fe Mon Sep 17 00:00:00 2001
 From: Pooya Parsa <pooya@pi0.io>
 Date: Sun, 15 Nov 2026 10:16:10 +0000
 Subject: [PATCH] wasm: kwinput, a keyboard, a mouse and a tablet fed by the
@@ -37,7 +37,7 @@ input only while a program reads it. No import suspends.
  create mode 100644 drivers/input/kwinput.c
 
 diff --git a/drivers/input/Kconfig b/drivers/input/Kconfig
-index 88ecdf5218e..92a39d43451 100644
+index 88ecdf521..92a39d434 100644
 --- a/drivers/input/Kconfig
 +++ b/drivers/input/Kconfig
 @@ -152,6 +152,15 @@ config INPUT_EVDEV
@@ -57,7 +57,7 @@ index 88ecdf5218e..92a39d43451 100644
  	tristate "KUnit tests for Input" if !KUNIT_ALL_TESTS
  	depends on INPUT && KUNIT
 diff --git a/drivers/input/Makefile b/drivers/input/Makefile
-index 2cd6e1c9a77..02e370df73d 100644
+index 2cd6e1c9a..02e370df7 100644
 --- a/drivers/input/Makefile
 +++ b/drivers/input/Makefile
 @@ -18,6 +18,7 @@ obj-$(CONFIG_INPUT_LEDS)	+= input-leds.o
@@ -70,7 +70,7 @@ index 2cd6e1c9a77..02e370df73d 100644
  obj-$(CONFIG_INPUT_MOUSE)	+= mouse/
 diff --git a/drivers/input/kwinput.c b/drivers/input/kwinput.c
 new file mode 100644
-index 00000000000..93059b9670f
+index 000000000..93059b967
 --- /dev/null
 +++ b/drivers/input/kwinput.c
 @@ -0,0 +1,197 @@

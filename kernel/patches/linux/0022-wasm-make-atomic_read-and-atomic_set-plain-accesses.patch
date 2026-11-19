@@ -1,4 +1,4 @@
-From 6ad4955568d4f1a64ff5739029f76e99ced66402 Mon Sep 17 00:00:00 2001
+From fd9b963d75c4614bbdb40f1094dc8169cf8eab64 Mon Sep 17 00:00:00 2001
 From: kernel-wasm <kernel-wasm@localhost>
 Date: Mon, 16 Nov 2026 14:54:54 +0000
 Subject: [PATCH] wasm: make atomic_read and atomic_set plain accesses
@@ -14,7 +14,7 @@ three of them (the rwsem owner, the new folio's refcount and mapcount).
  1 file changed, 11 insertions(+), 4 deletions(-)
 
 diff --git a/arch/wasm/include/asm/atomic.h b/arch/wasm/include/asm/atomic.h
-index 22d5070de78..147aa15e682 100644
+index 22d5070de..147aa15e6 100644
 --- a/arch/wasm/include/asm/atomic.h
 +++ b/arch/wasm/include/asm/atomic.h
 @@ -4,9 +4,16 @@
