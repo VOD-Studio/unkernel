@@ -22,9 +22,8 @@ import { Panel } from "./Panel.tsx";
 import { Preview } from "./Preview.tsx";
 
 /**
- * The terminals' hosts. #term is window 0's (boot.ts): wterm renders the
- * rows as DOM text in it, which is also the scroll container, and sets its
- * own class. windows.ts adds the other windows to #terms, each over the
+ * The terminals' hosts. #term is window 0's (boot.ts): wterm sets its class
+ * and uses it as the scroll container. windows.ts adds the other windows to #terms, each over the
  * same box. React renders these once and never touches them again.
  */
 const TermHost = memo(() => <div id="terms" className="relative h-full w-full"><div id="term" /></div>);

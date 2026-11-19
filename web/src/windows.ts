@@ -49,8 +49,27 @@ export function setTermFont(el: HTMLElement, px: number): void {
 	el.style.setProperty("--term-row-height", `${Math.round(px * 1.2)}px`);
 }
 
-/** The options every terminal on the page has (window 0's in boot.ts too). */
-export const TERM_OPTIONS = { scrollbackLines: 5000, cursorBlink: true } as const;
+/** Check once for the console and all child terminals, which share wterm's GPU context. */
+function terminalRenderer(): "dom" | "webgl" {
+	if (typeof OffscreenCanvas === "undefined") return "dom";
+	try {
+		const canvas = new OffscreenCanvas(1, 1);
+		if (typeof canvas.transferToImageBitmap !== "function") return "dom";
+		const gl = canvas.getContext("webgl2", { failIfMajorPerformanceCaveat: true });
+		if (!gl) return "dom";
+		const info = gl.getExtension("WEBGL_debug_renderer_info");
+		const renderer = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "";
+		gl.getExtension("WEBGL_lose_context")?.loseContext();
+		// Chromium can still report a usable context backed by SwiftShader.
+		if (typeof renderer !== "string" || !renderer.trim() ||
+			/swiftshader|llvmpipe|lavapipe|softpipe|software|microsoft basic render driver|gdi generic|\bwarp\b/i.test(renderer)) return "dom";
+		return "webgl";
+	} catch {
+		return "dom";
+	}
+}
+
+export const TERM_OPTIONS = { scrollbackLines: 5000, cursorBlink: true, renderer: terminalRenderer() } as const;
 
 /** History and screen as text, a line per row (wterm's own readText() is async). */
 export function termText(term: WTerm): string {

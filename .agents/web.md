@@ -194,8 +194,12 @@ elsewhere) and Ctrl-Shift-O; Copy diagnostics is y after the prefix
   the terminal is wide enough, and the buffered
   user-space output follow; nothing is scrolled away or erased. The desktop test checks the order.
 - wterm (`@wterm/dom`, Apache-2.0; xterm.js was dropped because its touch
-  scrolling had no momentum) renders rows as DOM text, and `#term` (and
-  each `.term-win`) is itself the scroll container, so `#term` must not
+  scrolling had no momentum) uses its WebGL2 renderer for live output
+  when an OffscreenCanvas probe identifies a hardware renderer
+  (`TERM_OPTIONS` in windows.ts, shared by all terminals). Software and
+  unidentified renderers use DOM, and wterm keeps DOM for text selection,
+  search and scrollback. `#term` (and each `.term-win`) is itself the scroll
+  container, so `#term` must not
   set `overflow`. When it gets shorter while scrolled to the bottom,
   App.tsx puts it back at the bottom before wterm refits (wterm would
   otherwise show the prompt behind the keyboard). React renders `#terms`

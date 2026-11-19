@@ -300,10 +300,10 @@ export function start(): void {
 	};
 
 	// --- terminal -------------------------------------------------------------
-	// wterm renders the rows as DOM text in #term, which is also the scroll
-	// container, so scrolling (touch momentum, the scrollbar) is the browser's
-	// own. It sizes the grid to the element (autoResize, also when the font
-	// size changes) and onResize passes the size on to the guest tty.
+	// #term is wterm's scroll container, so scrolling (touch momentum, the
+	// scrollbar) is the browser's own. TERM_OPTIONS selects the renderer for
+	// live output. Wterm sizes the grid to the element (autoResize, also when
+	// the font size changes) and onResize passes the size on to the guest tty.
 	const termEl = document.getElementById("term")!;
 	// wterm takes the row height from --term-row-height (it does not follow the font):
 	// setTermFont sets both. Its font probe then refits the grid.
