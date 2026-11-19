@@ -320,7 +320,12 @@ jobs:
 
       - name: kwtest (SMP, 2 CPUs)
         run: |
-          node js/cli.ts --timeout 900 --smp 2 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+          node js/cli.ts --timeout 900 --smp 2 --display --shm --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
+            --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
+          grep -q 'kwtest: 0 failure(s)' kwtest.log
+      - name: kwtest (SMP, 2 CPUs, no JIT)
+        run: |
+          node js/cli.ts --timeout 900 --no-jit --smp 2 --kernel vendor/build/bundle/unkernel-alpine.wasm --initrd alpine-test \
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
 
@@ -351,6 +356,12 @@ jobs:
             --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
           grep -q 'kwtest: 0 failure(s)' kwtest.log
           UNKERNEL_DIST=1 node --test test/api.test.ts
+      - name: Test the built package (SMP, 2 CPUs)
+        run: |
+          node dist/cli.mjs --timeout 900 --smp 2 --kernel dist/unkernel-alpine.wasm --initrd vendor/build/initramfs/alpine-test.cpio \
+            --append "console=hvc0 rdinit=/usr/bin/kwtest" </dev/null | tee kwtest.log
+          grep -q 'kwtest: 0 failure(s)' kwtest.log
+          UNKERNEL_DIST=1 UNKERNEL_TEST_CPUS=2 node --test test/api.test.ts
       - name: Pack
         run: |
           mkdir -p out

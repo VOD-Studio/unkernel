@@ -429,7 +429,6 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
      is split into records that another CPU's write can land between,
      and the drop path when CPU 0 is stuck inside the kernel is tested
      only in unit tests.
-   - No browser test in `web/test/` covers the CPUs option.
    - JIT on SMP, what is left: TLB flushes no longer wait for a CPU
      that compiles or yields to its host (kwemu.md, JIT on several
      harts, and Numbers, Compile stalls), but other IPIs do (`membarrier()`,
@@ -443,27 +442,30 @@ qemu's TCG keeps writing new code, which kwemu interprets or recompiles.
      CPU running user code still waits until that CPU's host thread runs
      again (kwload's `shoot` 2-36 s at 4-8 CPUs beside 24 spinners);
      nothing in the guest can shorten it, so fewer guest CPUs than free
-     host cores is the remedy (a CLI warning for `--smp` above
-     `os.availableParallelism()` is not built). Spinlocks taken out of
+     host cores is the remedy (the CLI warns on stderr when `--smp` exceeds
+     `os.availableParallelism()`). Spinlocks taken out of
      turn (step 7) have no starvation bound (a waiter that has waited,
      say, 1 ms could take a ticket; nothing measured needs it), and
      nothing switches `kw_spin_unfair=` by itself. Bare `cpu_relax()`
      loops (seqcount retries) do not take the timer.
-   - Browsers (2026-11-17; js.md, CPU threads; web.md, Several CPUs):
+   - Browsers (2026-11-19; js.md, CPU threads; web.md, Several CPUs):
      `js/web/cpu.ts` starts each CPU as a Web Worker, nested in worker
      mode's kernel worker (CPU 0 must be able to block, so not on a
      page's main thread), and the page has a CPUs option (`?smp=N`, off
      by default) that loads the SMP bundle only then and falls back to
-     one CPU. Run in headless Chromium (2 and 4 CPUs: boot, a terminal
-     window, glimmer, the JIT on every CPU, parallel loops scaling) and
-     by hand on a deployed build in desktop Chrome, Firefox and on iOS.
-     Not tried: desktop Safari, Android, a hidden tab (worker
-     throttling), long sessions. The page offers it
+     one CPU. Covered by `web/test/smp.mjs` (`pnpm test:web:smp`) in
+     headless Chromium (UP vs SMP bundle fetch, 2 and 4 CPUs, console
+     ring order, JIT on every CPU, parallel awk scaling, a terminal
+     window, glimmer display/evdev/sound, plain-http non-isolated fallback,
+     404 fallback, UP suspended session resume/discard, and a hidden tab
+     with `visibilityState === "hidden"`), and by hand on a deployed build
+     in desktop Chrome, Firefox and on iOS. Not tried by hand: desktop
+     Safari, Android, long sessions. The page offers it
      only once a release bundle carries the SMP patch (the next release:
      `kernel/build.sh` builds both kernels and the bundle with the patch,
      kernel.md, Two kernels, and the release workflow runs it). That
-     workflow's SMP steps are unexercised (testing.md, Release workflow,
-     says what they still need).
+     workflow's SMP steps are unexercised in CI (testing.md, Release
+     workflow, says what they still need).
    - Deferred fork and wakeup changes, measured 2026-11-16 (kwfork,
      9 alternating rounds; patches and a README with their base in
      `vendor/smp-deferred/`, which is gitignored like all of vendor):

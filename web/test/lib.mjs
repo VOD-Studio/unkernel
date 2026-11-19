@@ -67,11 +67,11 @@ export async function startServer({ port, host, dev = flag("dev"), env = {} }) {
  * page.newTab(name) opens another tab in the same browser (same profile);
  * closing the first page ends the browser.
  */
-export async function openPage(name, { shots, profile } = {}) {
+export async function openPage(name, { shots, profile, chromeArgs = [] } = {}) {
 	const dport = 30000 + Math.floor(Math.random() * 20000);
 	profile ??= path.join(tmpdir(), `kw-chrome-${process.pid}-${name}`);
 	const chrome = spawn(findChrome(), [
-		"--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", `--remote-debugging-port=${dport}`,
+		"--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars", ...chromeArgs, `--remote-debugging-port=${dport}`,
 		`--user-data-dir=${profile}`, "about:blank",
 	], { stdio: ["ignore", "ignore", "pipe"] });
 	let target;
@@ -134,7 +134,7 @@ async function attachTarget(target, name, { shots } = {}) {
 	await send("Page.enable");
 	let n = 0;
 	const page = {
-		name, ws, send, evaluate, exceptions, consoleLines, on: (fn) => listeners.push(fn),
+		name, targetId: target.id, ws, send, evaluate, exceptions, consoleLines, on: (fn) => listeners.push(fn),
 		async emulate(m, { touch = false, ua } = {}) {
 			await send("Emulation.setDeviceMetricsOverride", m);
 			await send("Emulation.setTouchEmulationEnabled", { enabled: touch, maxTouchPoints: touch ? 5 : 0 });
@@ -158,8 +158,8 @@ async function attachTarget(target, name, { shots } = {}) {
 			await page.waitFor(`(() => { const s = globalThis.KW?.screenText ? KW.screenText() : ''; return ${re}.test(s); })()`, what, ms);
 			return page.screen();
 		},
-		/** Type into the guest's console. */
-		type: (s) => evaluate(`globalThis.kernel.sendInput(${JSON.stringify(s)})`),
+		/** Type into the guest's console (inline: kernel.sendInput; worker/SMP: KW.vm.write). */
+		type: (s) => evaluate(`(globalThis.kernel ? globalThis.kernel.sendInput(${JSON.stringify(s)}) : globalThis.KW.vm.write(${JSON.stringify(s)}))`),
 		/** Run a shell command; resolves with the text between its markers, its exit code and the time it took. */
 		async run(cmd, ms = 120000) {
 			const tag = `KW${++n}`;

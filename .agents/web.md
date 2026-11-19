@@ -152,8 +152,9 @@ elsewhere) and Ctrl-Shift-O; Copy diagnostics is y after the prefix
   the page compiles the kernel and passes the `WebAssembly.Module`; disks
   and the network are specs built in the worker. The data disk in worker
   mode follows data-disk.md (Persistence in the browser). `KW.kernel` and
-  `globalThis.kernel` stay unset, so the browser tests (whose
-  `page.type()` uses `kernel.sendInput()`) run inline only. Every way the worker can fail
+  `globalThis.kernel` stay unset, so `headless.mjs` (which calls
+  `kernel.sendInput()` directly) runs inline; `lib.mjs`'s `page.type()`
+  falls back to `KW.vm.write()`, which `smp.mjs` uses. Every way the worker can fail
   ends in `ui.fail`.
 - Sound is an AudioWorklet fed by postMessage, because the kernel calls
   the import from a busy main thread; scheduled buffers are the fallback
@@ -268,18 +269,19 @@ other options.
   boot changes the disk), else keeps it.
 - The boot summary says "on N CPUs, in Web Workers"; diagnostics' config
   line has `cpus=`.
-- Checked in headless Chromium (Playwright's build, the built page from
-  the l2 patch bundle, 2026-11-17, a scratch script, not in `web/test/`):
-  the default load fetched only the UP bundle and ran on one CPU; `?smp=2`
-  and `?smp=4` fetched only the SMP bundle, `nproc` gave 2 and 4, a
-  terminal window, glimmer's test pattern, key and sound through worker
-  mode worked, the JIT compiled on every CPU, and n parallel awk loops
-  took 1.14x (2 CPUs) and 1.20x (4) the time of one; a plain-http LAN
-  load disabled the option and booted on one CPU; a blocked SMP download
-  reloaded on one CPU; a UP session resumed from a `?smp=2` load ("Resume
-  on 1 CPU") and was deleted by "Boot on 2 CPUs"; a page from the newest
-  release (no patch) showed the option disabled and booted UP. Also the
-  Vite dev server (nested worker from source).
+- Automated headless-Chromium suite: `web/test/smp.mjs` (`pnpm test:web:smp`,
+  built page with a local SMP bundle via `KW_KERNEL=` or `--dev` against Vite;
+  checked 2026-11-19): `up` (only UP bundle fetched, `nproc` = 1, `#opt-cpus-2`
+  enabled), `smp2` (only SMP bundle fetched, 2 CPUs in Web Workers, no Suspend,
+  console ring order across 4 processes + spinning peer, JIT on both CPUs, 2
+  parallel awk loops at 1.04x the time of one, vsock terminal window, glimmer
+  display/evdev/sound), `smp4` (4 CPUs, JIT on all 4, 4 parallel awk loops at
+  1.11x), `lan` (plain-http non-isolated page disables CPUs > 1 and boots UP),
+  `fallback` (blocked SMP download 404 reloads once on UP), `session` (UP
+  suspended session resumed via "Resume on 1 CPU" and discarded via "Boot on 2
+  CPUs"), and `hidden` (minimized tab with `visibilityState === "hidden"`
+  completes parallel 2-CPU work). Also verified with `--dev` (nested workers
+  from source).
 - Checked by hand on a deployed build (2026-11-17): several CPUs work in
   desktop Chrome, in Firefox and on iOS. Desktop Safari and Android: not
   tried.
@@ -581,7 +583,10 @@ Agents run these only when asked. The page is tested by hand with
 
 `headless.mjs` (`pnpm test:web`: desktop with the JIT compiling and
 cross-origin isolation asserted, phone over LAN, nojspi, fetch404, modfail,
-lowmem booting to the shell at 128 MiB), `data.mjs` (data disk, overlay root, safe mode,
+lowmem booting to the shell at 128 MiB), `smp.mjs` (`pnpm test:web:smp`:
+several CPUs, UP/SMP bundle split, console ring, per-CPU JIT, scaling,
+terminal window, glimmer, plain-http fallback, 404 fallback, UP session
+resume/discard, hidden tab), `data.mjs` (data disk, overlay root, safe mode,
 second tab, export/reset/import) and `net.mjs` (needs the internet). Shared
 code is in `lib.mjs`. They drive Chromium over the DevTools protocol with no
 npm dependencies and start the built server (`--dev` starts the Vite dev
@@ -595,7 +600,8 @@ script.
   isolation, nested dedicated workers (Chrome, Firefox, Safari 15.5+),
   `Atomics.waitAsync` (Chrome 87+, Safari 16.4+; check Firefox) and
   posting a `WebAssembly.Module` and a shared `WebAssembly.Memory` to a
-  worker. Only Chromium has run it (Several CPUs).
+  worker. Automated tests run in Chromium (`smp.mjs`); desktop Chrome,
+  Firefox and iOS were checked by hand (Several CPUs).
 - JSPI (`WebAssembly.Suspending`/`promising`) is required: Chrome/Edge
   137+, Firefox 153+, Safari 27+ (every iOS browser uses the system
   WebKit). memory64 is not needed, because the page runs the lowered

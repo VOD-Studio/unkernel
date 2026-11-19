@@ -15,6 +15,7 @@
 // suite marked "one kernel" boots once and runs its tests in order on it.
 import test, { after, before, describe } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
@@ -35,7 +36,7 @@ const testCpus = Number(process.env.UNKERNEL_TEST_CPUS) || undefined;
 const noSnapshots = (testCpus ?? 1) > 1 && "SMP: no snapshots";
 
 const PROMPT = /⇒/; // Alpine's shell prompt (kernel/guest/alpine.sh)
-const CONCURRENCY = Number(process.env.UNKERNEL_TEST_CONCURRENCY) || availableParallelism();
+const CONCURRENCY = Number(process.env.UNKERNEL_TEST_CONCURRENCY) || Math.max(1, Math.floor(availableParallelism() / (testCpus ?? 1)));
 
 /** Does the kernel under test have kwvsock (net/vmw_vsock/kwvsock.c) and kwshm (drivers/misc/kwshm.c)? */
 const kernelBytes = readFileSync(kernelFile);
@@ -1888,6 +1889,17 @@ describe("api", { concurrency: CONCURRENCY }, () => {
 		const res2 = await vm2.exited;
 		assert.deepEqual([res2.code, res2.kind], [253, "panic"]);
 		assert.ok(kernelLines.some((l) => /Kernel panic|sysrq: Trigger a crash/i.test(l)), kernelLines.slice(-10).join("\n"));
+	});
+
+	test("CLI: --smp above availableParallelism() warns on stderr", { skip: availableParallelism() >= 32 && "host has >= 32 CPU threads" }, () => {
+		const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), process.env.UNKERNEL_DIST ? "../dist/cli.mjs" : "../js/cli.ts");
+		const host = availableParallelism();
+		const over = spawnSync(process.execPath, [cli, "--smp", String(host + 1), "--kernel", "/nonexistent-unkernel-check.wasm"], { encoding: "utf8" });
+		assert.equal(over.status, 1);
+		assert.match(over.stderr, new RegExp(`warning: --smp ${host + 1} exceeds this host's ${host} CPU thread`));
+		const ok = spawnSync(process.execPath, [cli, "--smp", String(Math.min(2, host)), "--kernel", "/nonexistent-unkernel-check.wasm"], { encoding: "utf8" });
+		assert.equal(ok.status, 1);
+		assert.doesNotMatch(ok.stderr, /warning: --smp/);
 	});
 
 });

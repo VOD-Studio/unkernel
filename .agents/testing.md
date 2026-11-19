@@ -57,10 +57,12 @@ apt.llvm.org; both kwemu libraries with `zig build -Dcpu=baseline`
 handed over as `KWEMU=` and `KWEMU_SMP=`, so the zig cache survives
 runners with other CPU models), runs
 kwtest with and without the JIT (the bundle's kernel with `--initrd
-alpine-test`) and on 2 CPUs (the SMP kernel from the bundle; a hosted
+alpine-test`) and on 2 CPUs with the JIT (`--display --shm`) and without
+(the SMP kernel from the bundle; a hosted
 runner has 4 vCPUs, so not more), `pnpm typecheck`, `pnpm test:kpatch`
 on the two kernels, the tty, http and 9p
-tests, `pnpm build`, kwtest (the same way) and the api tests on the built package, then
+tests, `pnpm build`, kwtest and the api tests on the built package both
+UP and on 2 CPUs (`UNKERNEL_DIST=1 UNKERNEL_TEST_CPUS=2`), then
 uploads `npm pack`'s tarball (`unkernel.tgz`) and the bundle. A release
 publishes the tarball to npm through trusted publishing (npmjs.com trusts
 `release.yml` of this repository; no token), always on the dist-tag
@@ -70,9 +72,10 @@ marked latest). CI runs Node 26; package.json's engines stay at
 >= 24. The workflow's header lists the caches. The kernel tree is restored only by an exact
 patch-series key, and the kernel builds (UP and SMP, one cache) only for
 that same tree.
-The SMP steps are unexercised (not run in CI as of 2026-11-17; the YAML
-parses, and the kernels, bundle and tests they make were checked
-locally). Still to do there: a first run, its time (a second kernel build on a cache miss, about
-as long as the first: 1.5 min each at `-j8` locally), whether kwtest's
-timing checks (`move:`) hold on a 4-vCPU runner, kwtest without the JIT
-on 2 CPUs, and the api tests with `UNKERNEL_TEST_CPUS=2`.
+The SMP steps are unexercised in CI (as of 2026-11-19; all of them —
+including `kwtest --smp 2 --display --shm`, `kwtest --smp 2 --no-jit`,
+`dist/cli.mjs --smp 2` kwtest and `UNKERNEL_DIST=1 UNKERNEL_TEST_CPUS=2`
+api tests — were verified locally). Still to do on a hosted runner: a
+first run, its time (a second kernel build on a cache miss, about as
+long as the first: 1.5 min each at `-j8` locally), and whether kwtest's
+timing checks (`move:`) hold on a 4-vCPU runner.

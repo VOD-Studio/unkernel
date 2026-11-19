@@ -7,6 +7,7 @@
 
 import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer, type Server, type Socket } from "node:net";
+import { availableParallelism } from "node:os";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import type { BlockDevice } from "./core/block.ts";
@@ -87,8 +88,10 @@ shared memory. PCM and everything else are messages either way.
 --smp N gives an SMP kernel (one built with CONFIG_SMP: kw_smp.config)
 N CPUs, each another instance of the kernel in its own thread on a shared
 memory, each with its own JIT; it implies --worker, and --stats prints the
-JIT counters per CPU. A UP kernel runs on one CPU (a log line says so). An SMP kernel has every device
-(their host side and their I/O stay with CPU 0), but no snapshots.
+JIT counters per CPU. A UP kernel runs on one CPU (a log line says so). Keep N
+at or below the host's free CPU threads (it warns above os.availableParallelism()).
+An SMP kernel has every device (their host side and their I/O stay with CPU 0),
+but no snapshots.
 
 --display gives the guest a display: /dev/fb0 (kwfb, 32 bpp XRGB8888), whose
 memory exists while a program has it open; 640x480, or --display=WxH (the
@@ -195,6 +198,10 @@ const smpCpus = Number(opt("smp", "1"));
 if (!Number.isInteger(smpCpus) || smpCpus < 1 || smpCpus > 32) {
 	process.stderr.write("[host] --smp N: 1 to 32 CPUs\n");
 	process.exit(1);
+}
+const hostCpus = availableParallelism();
+if (smpCpus > hostCpus) {
+	process.stderr.write(`[host] warning: --smp ${smpCpus} exceeds this host's ${hostCpus} CPU thread${hostCpus === 1 ? "" : "s"}; oversubscription can stall cross-CPU waits and TLB shootdowns\n`);
 }
 // SMP: every CPU in a worker, CPU 0 in the kernel worker.
 const worker = !!workerArg || smpCpus > 1;

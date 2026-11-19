@@ -61,7 +61,8 @@
     "build:web": "pnpm -C web build",
     "start:web": "pnpm -C web start",
     "typecheck:web": "pnpm -C web typecheck",
-    "test:web": "node web/test/headless.mjs"
+    "test:web": "node web/test/headless.mjs",
+    "test:web:smp": "node web/test/smp.mjs"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

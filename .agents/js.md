@@ -9,7 +9,8 @@ parts that are easy to get wrong.
 - Node 24 runs the sources directly (`node js/cli.ts`,
   `node --test test/*.test.ts`). `pnpm install` is needed only for
   `pnpm typecheck` (`tsc`, TypeScript 7) and `pnpm build` (obuild).
-- `test/api.test.ts` runs its tests concurrently (one per core,
+- `test/api.test.ts` runs its tests concurrently (one per core, divided by
+  `UNKERNEL_TEST_CPUS` when > 1 so multi-CPU runs do not oversubscribe the host;
   `UNKERNEL_TEST_CONCURRENCY=1` for one at a time). Boot with
   `boot(t, opts)`, so that each test stops only its own kernels. Tests that
   can share one kernel's boot options go in a `describe` with
