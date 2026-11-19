@@ -20,8 +20,7 @@ a separate chunk loaded only after the preflight passes), `windows.ts`
 it gets shorter), `net.ts` (Wisp only), `apk.ts` (apk index prefetch), `readme.ts` (`/root/README`), `download.ts` (files the page fetches for the guest), `sdk.ts`, `kw.ts` (`window.KW`),
 `data.ts` (the data disk), `session.ts` (the suspended session), `display.ts` (the guest display's state, the
 mode offered, keyboard routing), `audio.ts` (Web Audio output),
-`preview.ts` (the guest preview's page side), `fx.ts` (the fx coding
-agent's panel: the workspace, the stores, the key mapping), `sw.ts` (the service
+`preview.ts` (the guest preview's page side), `sw.ts` (the service
 worker's registration and the update check), `launcher.ts` (how a demo
 runs; the demos are in `src/demos/`), `style.css`
 (Tailwind theme, the dialog, wterm's colours). `src/components/`: `App.tsx`
@@ -29,8 +28,7 @@ runs; the demos are in `src/demos/`), `style.css`
 launcher overlay),
 `Panel.tsx` (the dialog), `Options.tsx`, `Display.tsx` (the display layer,
 rotation, mouse and touch input, touch controls), `Keys.tsx` (extra keys),
-`Overlays.tsx` (splash, toast, paste and confirm dialogs), `Fx.tsx` (the fx
-panel), `About.tsx`
+`Overlays.tsx` (splash, toast, paste and confirm dialogs), `About.tsx`
 (the status line's triangle and the credits dialog), `Preview.tsx`
 (the preview panel), `icons.tsx`. `src/env.d.ts` declares `__KW_BUILD__`,
 which `vite.config.ts` defines: the Linux release read from the committed
@@ -448,48 +446,6 @@ has no Options control.
   python3`, then `cd /tmp/www && python3 -m http.server 8000`. Then Ctrl-A
   p, and "Go" after changing the port.
 
-## fx
-
-The status line's `fx` button (`#bar-fx`, after the display and preview
-icons; in the ⋯ menu on phones) and Ctrl-A f
-start fx, the coding agent from fx.sh, in a panel (`#fx`, `Fx.tsx`, the
-store's `fx`); pressed again they hide and show it, and its `[×]`
-(`#fx-close`) stops fx. `?fx` (or `?fx=1`) starts it at load, once the
-preflight passes, without waiting for the kernel; its Options control is
-the `fx` check box (`#opt-fx`), and an `?fx` already in the URL stays as
-written on Reboot. It is no terminal window: no status line tab, its
-wterm (`#fx-term`) is outside `#terms`, so display.ts never routes its keys
-to the guest. Docked right of the stage (and of the preview) on wide
-screens, with its own split (localStorage `kw.fxSplit`, default 38%, the
-drag shared with the preview: `dragSplit()`); over the stage under 720 px.
-`fx.ts` describes the rest at its top:
-
-- It runs libfx's wasm terminal (`createFxTerminal()`, npm `libfx`,
-  Apache-2.0) under JSPI on the page's thread next to the kernel. wterm,
-  libfx and `fx-term.wasm` (4 MB) load on first use, not with the page, and
-  the service worker does not precache libfx's wasm (`unkernel:asset-list`
-  in vite.config.ts; libfx also emits `fx-core.wasm`, which the page never
-  fetches). libfx is excluded from Vite's dependency pre-bundling, which
-  would break its `new URL("./fx-term.wasm", import.meta.url)`.
-- Its one tool, `shell.run`, is a workspace adapter: `/bin/sh -lc
-  <command>` through `vm.exec()` as root in `/root`, after user space runs
-  (`KW.ready`), with fx's own deadline (at most 30 s) and Ctrl-C as the
-  abort signal. `permission: "allow-sandboxed"`: no prompt per command.
-  `/root/AGENTS.md` from the guest, else built-in instructions about the
-  machine.
-- Sign-in is fx's `/login` (Vercel device login; the URL opens in a new
-  tab). vercel.com serves its OAuth discovery document without CORS
-  headers (2026-11-16), so `fxFetch()` falls back to a copy of the four
-  fields fx reads; the endpoints on api.vercel.com send CORS headers.
-  Without it the sign-in fails in a browser and fx offers API key entry,
-  which its wasm build does not have. The OAuth session, fx's settings, its
-  prompt history and the conversation are in `fx.ts`'s module memory only,
-  out of reach of other scripts (not in storage, not on `window` or `KW`), so
-  a reload signs out. Keys `kw.fx.*` from an earlier build are removed.
-- Checked by hand, plus a scratch run on 2026-11-16 (headless Chromium,
-  built page): the panel docks and hides, Vercel sign-in reaches the device
-  code, the narrow layout covers the stage. No browser test.
-
 ## Launcher
 
 The status line's first item (`❯` and the shortcut as key caps,
@@ -532,9 +488,7 @@ fetched by the page before its window opens (`download.ts`, described at
 its top): the sites send no CORS headers and the page is cross-origin
 isolated, so it speaks plain http over its own Wisp connection, as apk.ts
 does, follows redirects as http (a site that redirects to https only
-fails; a download with `cors`, for a site that sends
-Access-Control-Allow-Origin such as releases.fx.sh, is a direct `fetch()`
-instead), checks the SHA-256 and keeps the file in the Cache API
+fails), checks the SHA-256 and keeps the file in the Cache API
 (`kw-files-v1`), then pushes it with one `vm.exec()` (through a `.part`
 file, size checked). It skips a file that is in the guest already at that
 size, or whose `unless` passes in the demo's directory. A failure is a toast

@@ -163,7 +163,6 @@ export function Options() {
 				<Check id="opt-verbose" name="verbose" on="keep" off="clear" value={o.verbose} label="Verbose boot" note="show all kernel messages" />
 				<Check id="opt-root" name="root" on="safe" off="overlay" value={o.root} label="Safe mode" note="boot without your changes" />
 				<Check id="opt-worker" name="worker" on="on" off="off" value={o.worker} label="Worker thread" note={o.cpus !== "1" && !cfg.smpBlocked ? "experimental; on with several CPUs" : "experimental"} />
-				<Check id="opt-fx" name="fx" on="on" off="off" value={o.fx} label="fx" note="start the coding agent at load" />
 			</div>
 
 			<fieldset className="col-span-full flex flex-col gap-1.5">

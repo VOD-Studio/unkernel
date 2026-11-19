@@ -16,8 +16,6 @@
 //   ⌘K on Apple devices (free there: the terminal sends nothing for ⌘) and
 //   Ctrl-Shift-O everywhere (Ctrl-K is readline's kill-line, so not that);
 // - Ctrl-A p opens the guest preview (preview.ts), or hides and shows it;
-//   Ctrl-A f opens fx, the coding agent, in a side panel working on the VM
-//   (fx.ts), then hides and shows it;
 //   Ctrl-A s suspends (session.ts: the next load offers to resume).
 // While a dialog is open the keys act on it directly (DIALOG_KEYS) and
 // never reach the terminal or the guest under it.
@@ -27,7 +25,6 @@
 // evdev keyboard (X, games) too.
 import { openAbout } from "./components/About.tsx";
 import { setDisplayShown } from "./display.ts";
-import { toggleFx } from "./fx.ts";
 import { KW } from "./kw.ts";
 import { toggleLauncher } from "./launcher.ts";
 import { previewCovers, togglePreview, yieldPreview } from "./preview.ts";
@@ -109,7 +106,6 @@ export const COMMANDS: Command[] = [
 	} },
 	{ keys: ["o"], chord: "KeyO", meta: "KeyK", label: "Demos: the launcher (again closes it)", run: toggleLauncher },
 	{ keys: ["p"], label: "Preview a web server in the guest (the last port, or 8000; again hides or shows it)", run: togglePreview },
-	{ keys: ["f"], label: "fx: the coding agent, in a side panel, working on this VM (again hides or shows it)", run: toggleFx },
 	{ keys: ["y"], label: "Copy diagnostics (in a dialog, c also)", run: () => KW.ui!.copyDiagnostics() },
 	{ keys: ["r"], label: "Reboot (asks first)", run: () => KW.ui!.confirmReboot() },
 	{ keys: ["s"], label: "Suspend: save the system in this browser and stop (asks first; the next load offers to resume)", run: () => void KW.ui!.confirmSuspend() },

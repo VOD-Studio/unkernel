@@ -110,7 +110,6 @@ export function createUi(cfg: Config) {
 		root: cfg.root === "initramfs" ? "safe" : "overlay",
 		worker: cfg.workerParam ? "on" : "off",
 		cpus: String(cfg.smpParam),
-		fx: cfg.fx ? "on" : "off",
 	};
 	const $ = initStore({
 		state: "checking", label: LABEL.checking, suspended: false,
@@ -127,7 +126,7 @@ export function createUi(cfg: Config) {
 			rotate: store("fbRotate") === "1", layout: padLayout(store("padLayout")),
 			touchMode: store("touchMode") === "trackpad" ? "trackpad" : "mouse",
 			controls: store("padHidden") !== "1" },
-		win: 0, wins: [], preview: null, fx: null, launcher: false,
+		win: 0, wins: [], preview: null, launcher: false,
 		options,
 	} satisfies UiState);
 
@@ -438,10 +437,7 @@ export function createUi(cfg: Config) {
 		set("root", o.root === "safe" ? "initramfs" : null);
 		set("worker", o.worker === "on" ? "1" : null);
 		set("smp", o.cpus === "1" ? null : o.cpus);
-		if (o.fx === "off") set("fx", null);
-		else if (!cfg.fx) set("fx", "1"); // an existing ?fx (any value but 0) stays as written
-		// URLSearchParams writes a bare ?fx as fx=: keep it bare, so the URL stays as given.
-		const q = p.toString().replace(/(^|&)fx=(?=&|$)/, "$1fx");
+		const q = p.toString();
 		return location.pathname + (q ? `?${q}` : "");
 	}
 	let rebooting = false;

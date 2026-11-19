@@ -19,7 +19,6 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.3.0",
     "@wterm/dom": "0.5.10",
-    "libfx": "0.0.17",
     "nitro": "npm:nitro-nightly@3.0.1-20261111-232659-0f2a7f49",
     "react": "19.3.1",
     "react-dom": "19.3.1",

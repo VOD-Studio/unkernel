@@ -782,8 +782,7 @@ from source). Everything is self-hosted except the Wisp fallback.
   in a Web Worker; input and frames through shared memory when the page is
   cross-origin isolated, `?shared=0` for messages), `?smp=N` (experimental: the SMP
   kernel on N CPUs, each in a Web Worker; offered only when the page's bundle carries
-  the SMP kernel and the page is cross-origin isolated, else one CPU; no Suspend), `?fx` (start the fx
-  coding agent in its panel at load), and, for tests,
+  the SMP kernel and the page is cross-origin isolated, else one CPU; no Suspend), and, for tests,
   `?simulate=nojspi|oom|lowmem` (documented in `web/src/config.ts`).
 * **Launcher:** ❯ at the left of the status line (or ⌘K on Apple devices,
   Ctrl-Shift-O, Ctrl-A o) opens a full-page grid of demos: glimmer, tmux,
@@ -832,13 +831,6 @@ from source). Everything is self-hosted except the Wisp fallback.
   digit, or a click on its name, switches; the shell exiting closes its
   window, Ctrl-A x closes the current one. `web/src/windows.ts`;
   .agents/web.md has the details.
-* **fx.** The status line's `fx` button (or Ctrl-A f) starts
-  [fx](https://fx.sh/), a coding agent, in a side panel docked right of the
-  terminal (over it on phones); pressed again it hides and shows the panel,
-  and `[×]` stops fx. Its shell tool runs each command in the guest as root
-  (`vm.exec()`), so it works on the running system. It is libfx's wasm
-  terminal on the page's thread, loaded on first use; sign in with
-  `/login` (Vercel). `web/src/fx.ts`; .agents/web.md (fx).
 * **Suspend.** Ctrl-A s (or *Suspend* in the dialog) saves the running
   system in the browser and stops it; the next visit offers to resume it,
   with the console as it was and `/data` as saved. Terminal windows 1-9

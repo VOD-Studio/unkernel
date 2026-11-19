@@ -59,9 +59,6 @@
 //                                      when the SMP kernel fails to load or start, the page boots
 //                                      on one CPU as usual (smpBlocker(), boot.ts). No Suspend.
 //                                      Default (and ?smp=1): one CPU, the UP kernel.
-//   ?fx (or ?fx=1)                     start fx, the coding agent, in its side panel once the
-//                                      page passes its preflight (fx.ts; the status line's fx
-//                                      button does the same later). ?fx=0 is off, as is no ?fx.
 //   ?demo=<id>                         launch that demo once the guest is up (launcher.ts). The
 //                                      launcher sets it on each launch, so a reload reopens the
 //                                      last demo, and closing its window removes it; read
@@ -126,8 +123,6 @@ export interface Config {
 	cpuSuggested: number;
 	/** Worker mode: shared memory for input and frames where it works (?shared=0: messages). */
 	shared: boolean;
-	/** ?fx: start fx (fx.ts) in its panel at load. */
-	fx: boolean;
 	verbose: boolean;
 	simulate: string[];
 	/** A touch device or a mobile user agent. */
@@ -219,7 +214,6 @@ export function readConfig(search: string = location.search): Config {
 		cpuMax,
 		cpuSuggested: half >= 2 ? Math.min(half, cpuMax) : 0,
 		shared: params.get("shared") !== "0",
-		fx: params.has("fx") && params.get("fx") !== "0",
 		verbose: params.get("verbose") === "1",
 		simulate: (params.get("simulate") || "").split(",").filter(Boolean),
 		mobile,

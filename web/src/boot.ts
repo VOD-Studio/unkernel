@@ -345,7 +345,6 @@ export function start(): void {
 		autoFocus: !cfg.coarse, onClose: forgetDemo,
 	});
 	KW.windows = windows;
-	KW.ready = () => guestReady;
 	// ?demo=<id>: launch that demo again (launcher.ts sets it when one launches).
 	void guestReady.then(launchFromUrl, () => {});
 	// Fresh apk indexes, fetched by the page over Wisp and pushed in once user space runs (apk.ts).

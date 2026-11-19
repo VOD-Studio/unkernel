@@ -532,9 +532,8 @@ Thanks to:
   patches and the Kbuild toolchain wrapper.
 - [iSH](https://github.com/ish-app/ish) and [v86](https://github.com/copy/v86),
   for showing how to build a fast user-mode emulator and a wasm JIT.
-- [Alpine Linux](https://alpinelinux.org/), [wterm](https://wterm.dev/),
-  [Binaryen](https://github.com/WebAssembly/binaryen) and
-  [fx](https://fx.sh/) (the page's coding agent, libfx, Apache-2.0).
+- [Alpine Linux](https://alpinelinux.org/), [wterm](https://wterm.dev/) and
+  [Binaryen](https://github.com/WebAssembly/binaryen).
 
 ## 📄 License
 

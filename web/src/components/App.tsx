@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (C) 2026 Pooya Parsa <pooya@pi0.io>
 // The page: the stage (the terminal, the splash card) with the guest preview
-// panel and fx (Fx.tsx) docked right of it, the key bar, the status line at the bottom, the
+// panel docked right of it, the key bar, the status line at the bottom, the
 // guest's display over the stage (or over all of them, rotated), and over them the
 // dialog, the paste dialog and the toast. Also the page-wide behaviour: the keyboard
 // shortcuts (shortcuts.ts), following the visual viewport (the on-screen
@@ -15,7 +15,6 @@ import { installShortcuts } from "../shortcuts.ts";
 import { ui$, useStore } from "../store.ts";
 import { Bar } from "./Bar.tsx";
 import { Display } from "./Display.tsx";
-import { Fx } from "./Fx.tsx";
 import { Keys } from "./Keys.tsx";
 import { Launchpad } from "./Launcher.tsx";
 import { Confirm, PasteDialog, ResumeCard, Splash, Toast } from "./Overlays.tsx";
@@ -46,7 +45,7 @@ export function App() {
 	return (
 		<>
 			<div id="app" ref={app} data-state={state} className={`fixed inset-x-0 top-0 flex h-dvh flex-col ${cfg.mobile ? "mobile" : ""}`}>
-				{/* The stage, and the preview and fx docked right of it (they take part of the stage's width). */}
+				{/* The preview docks to the right and takes part of the stage's width. */}
 				<div className="relative flex min-h-0 flex-1">
 					<main id="stage" ref={setStageEl} className="relative min-h-0 min-w-0 flex-1 pt-[max(8px,var(--st))] pr-[max(12px,var(--sr))] pb-1 pl-[max(12px,var(--sl))]">
 						<TermHost />
@@ -54,7 +53,6 @@ export function App() {
 						<ResumeCard />
 					</main>
 					<Preview />
-					<Fx />
 				</div>
 				<Keys />
 				<Bar />

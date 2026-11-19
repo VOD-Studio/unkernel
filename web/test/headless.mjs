@@ -182,7 +182,7 @@ const scenarios = {
 			const before = KW.ui.rebootUrl();
 			mem("64"); net("custom"); set("opt-wisp", "wss://a.example/, wss://b.example/", "input");
 			check("opt-jit", false); check("opt-verbose", true); set("opt-append", "console=hvc0 rdinit=/bin/sh", "input");
-			check("opt-data", false); check("opt-root", true); check("opt-worker", true); check("opt-fx", true);
+			check("opt-data", false); check("opt-root", true); check("opt-worker", true);
 			// CPUs: only where the page has the SMP kernel and may boot it (else the choices above 1 are disabled).
 			const cpus = !!$("opt-cpus-2") && !$("opt-cpus-2").disabled;
 			if (cpus) check("opt-cpus-2", true);
@@ -191,7 +191,7 @@ const scenarios = {
 			net("off");
 			const off = KW.ui.rebootUrl();
 			mem("auto"); net("default"); check("opt-jit", true); check("opt-verbose", false); set("opt-append", "", "input");
-			check("opt-data", true); check("opt-root", false); check("opt-worker", false); check("opt-fx", false);
+			check("opt-data", true); check("opt-root", false); check("opt-worker", false);
 			if (cpus) check("opt-cpus-1", true);
 			await tick();
 			return { before, all, wispShown, label, off, reset: KW.ui.rebootUrl(), wispHidden: $("opt-wisp-row").hidden, cpus };
@@ -199,7 +199,7 @@ const scenarios = {
 		const q = new URLSearchParams(opts.all.split("?")[1]);
 		if (opts.before !== "/" || opts.reset !== "/" || !opts.wispShown || !opts.wispHidden || opts.label !== "Reboot to apply"
 			|| q.get("mem") !== "64" || q.get("wisp") !== "wss://a.example/,wss://b.example/" || q.get("jit") !== "0" || q.get("verbose") !== "1"
-			|| q.get("append") !== "console=hvc0 rdinit=/bin/sh" || q.get("data") !== "0" || q.get("root") !== "initramfs" || q.get("worker") !== "1" || q.get("fx") !== "1" || q.get("smp") !== (opts.cpus ? "2" : null) || new URLSearchParams(opts.off.split("?")[1]).get("wisp") !== "0")
+			|| q.get("append") !== "console=hvc0 rdinit=/bin/sh" || q.get("data") !== "0" || q.get("root") !== "initramfs" || q.get("worker") !== "1" || q.get("smp") !== (opts.cpus ? "2" : null) || new URLSearchParams(opts.off.split("?")[1]).get("wisp") !== "0")
 			throw new Error(`options do not map to the URL: ${JSON.stringify(opts)}`);
 		console.log(`  options -> ${decodeURIComponent(opts.all)}`);
 		await page.click('.tabs [data-tab="log"]');

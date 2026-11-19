@@ -7,8 +7,7 @@
 // current or under the pointer), and the prefix and what it takes while it
 // is armed. Right, in groups: the views, inverted while shown (a monitor for
 // the guest's display while a program has it open; a globe for the preview
-// while it is open, Preview.tsx has its close; fx, fx.ts, which starts the
-// agent in its side panel, then hides and shows it); the data disk's used
+// while it is open, Preview.tsx has its close); the data disk's used
 // space (opens System) and kernel memory (opens Environment); the dialog's
 // tabs (^A, faint, which opens the Keys tab and hides while the prefix is
 // armed; the Kernel log; Errors with their count, only while there are any);
@@ -19,7 +18,6 @@
 // are buttons, so phones get around by tapping; on touch the line is taller
 // and its buttons wider (--bar-h, style.css).
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
-import { toggleFx } from "../fx.ts";
 import { KW } from "../kw.ts";
 import { previewCovers, togglePreview, useNarrow } from "../preview.ts";
 import { PREFIX, PREFIX_SHORT, closeWindow, newWindow, selectWindow, toggleDisplay } from "../shortcuts.ts";
@@ -101,7 +99,7 @@ type Item = [string, ReactNode, () => void];
 /**
  * Narrow screens (below sm): the right side keeps only the display, the
  * preview and Errors, and the rest moves into this menu, in groups: System,
- * the data disk, memory; Kernel log, Keys, fx; Suspend or Resume, Reboot;
+ * the data disk, memory; Kernel log, Keys; Suspend or Resume, Reboot;
  * About. Esc, a pick or a tap outside closes it.
  */
 function More() {
@@ -111,7 +109,6 @@ function More() {
 	const state = useStore((s) => s.state);
 	const suspended = useStore((s) => s.suspended);
 	const disk = useStore((s) => s.disk);
-	const fx = useStore((s) => s.fx);
 	const mem = KW.memActualMiB || KW.config.memMiB;
 	useEffect(() => {
 		if (!open) return;
@@ -133,7 +130,6 @@ function More() {
 		[
 			["Kernel log", <LogIcon />, () => ui.openPanel("log")],
 			["Keyboard shortcuts", <span className="w-[13px] text-center text-[10px]">{PREFIX_SHORT}</span>, () => ui.openPanel("keys")],
-			[fx ? (fx.shown ? "Hide fx" : "Show fx") : "fx coding agent", <span className="text-[10px] font-semibold">fx</span>, toggleFx],
 		],
 		[
 			...(suspended ? [["Resume", <PlayIcon />, ui.resume] as Item]
@@ -185,7 +181,6 @@ export function Bar() {
 	const term = !panel && !picture && !covers;
 	const tab = (t: Tab) => () => ui.togglePanel(t);
 	const canOpen = wins.length < MAX_WINDOWS && state !== "halted" && state !== "error";
-	const fx = useStore((s) => s.fx);
 
 	return (
 		<footer id="bar" aria-label="Status line" className="relative flex min-h-[calc(var(--bar-h)+var(--sb))] flex-none items-stretch gap-2 border-t border-line bg-surface pr-[max(4px,var(--sr),var(--sc))] pb-(--sb) pl-[max(var(--sl),var(--sc))] font-mono text-[12px] leading-none select-none">
@@ -204,7 +199,7 @@ export function Bar() {
 				{prefix && (
 					<>
 						<span className="flex flex-none items-center bg-warn px-1.5 font-semibold text-black">{PREFIX_SHORT}</span>
-						<span className="flex items-center truncate px-1.5 text-faint max-sm:hidden">n new · x close · f fx · y copy · s suspend · r reboot · ? keys · esc cancel</span>
+						<span className="flex items-center truncate px-1.5 text-faint max-sm:hidden">n new · x close · y copy · s suspend · r reboot · ? keys · esc cancel</span>
 					</>
 				)}
 			</div>
@@ -219,8 +214,6 @@ export function Bar() {
 						<PreviewIcon />
 					</Seg>
 				)}
-				<Seg id="bar-fx" on={!!fx?.shown} title={fx ? `fx, the coding agent: ${fx.shown ? "hide" : "show"} it` : "fx, the coding agent: start it in a side panel, working on this VM"}
-					label="fx coding agent" hint="f" onClick={toggleFx} className="font-semibold max-sm:hidden">fx</Seg>
 				{disk && (
 					<Seg hint="k" onClick={tab("status")} className="gap-1.5 tabular-nums max-md:hidden"
 						title={`Data disk (/data): ${fmtSize(disk.used)} of ${fmtSize(disk.size)} in use${disk.saved ? ", saved in this browser" : ", in memory only"}. Counts blocks ever written; df in the guest is exact. Opens System.`}>

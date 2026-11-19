@@ -59,8 +59,6 @@ export default defineConfig({
 	build: { target: "esnext" },
 	// The SDK's worker mode (?worker=1): js/web/worker.ts starts a module worker.
 	worker: { format: "es" },
-	// libfx names fx-term.wasm with new URL(..., import.meta.url), which pre-bundling would break.
-	optimizeDeps: { exclude: ["libfx"] },
 	plugins: [
 		{
 			// The kernel first: fetched before the build resolves it, and
